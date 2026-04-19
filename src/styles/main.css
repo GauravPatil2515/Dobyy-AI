@@ -182,9 +182,30 @@ input, select, textarea { font-family: var(--fb); color: var(--tx) }
   display: grid;
   grid-template-columns: 230px 1fr 290px;
   overflow: hidden;
+  transition: grid-template-columns 0.05s ease-out;
 }
 
-/* ── HEADER ─────────────────────────────────────────────────── */
+/* ── RESIZE HANDLES ────────────────────────────────────────── */
+.resize-handle {
+  width: 4px; height: 100%;
+  background: transparent;
+  cursor: col-resize;
+  position: relative;
+  flex-shrink: 0;
+  z-index: 50;
+  transition: background 0.15s ease;
+}
+.resize-handle:hover {
+  background: var(--accent);
+}
+.resize-handle.resize-handle-right {
+  margin-left: -2px;
+}
+.resize-handle.resize-handle-left {
+  margin-right: -2px;
+}
+
+/* ── HEADER ────────────────────────────────────────────────────── */
 .app-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 18px;
@@ -219,6 +240,7 @@ input, select, textarea { font-family: var(--fb); color: var(--tx) }
 .sidebar {
   background: var(--surf); border-right: 1px solid var(--bdr);
   overflow-y: auto; display: flex; flex-direction: column;
+  flex: 1; width: 100%; min-width: 180px;
 }
 .section { padding: 11px; border-bottom: 1px solid rgba(28,20,10,.06) }
 .section-title {
@@ -385,6 +407,7 @@ input, select, textarea { font-family: var(--fb); color: var(--tx) }
 .chat-panel {
   background: var(--surf); border-left: 1px solid var(--bdr);
   display: flex; flex-direction: column; overflow: hidden;
+  flex: 1; width: 100%; min-width: 180px;
 }
 .chat-header { padding: 10px 12px; border-bottom: 1px solid var(--bdr) }
 .chat-title  { font-family: var(--fd); font-size: 15px; font-weight: 600 }
