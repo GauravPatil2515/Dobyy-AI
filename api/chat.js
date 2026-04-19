@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-  // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -15,15 +14,12 @@ export default async function handler(req, res) {
   const apiKey = process.env.VITE_GROQ_API_KEY;
 
   if (!apiKey) {
-    console.error('Missing VITE_GROQ_API_KEY');
+    console.error('Missing VITE_GROQ_API_KEY environment variable');
     return res.status(500).json({ error: 'API key not configured' });
   }
 
   try {
-    const targetUrl = 'https://api.groq.com/openai/v1/chat/completions';
-    console.log('Proxying to:', targetUrl);
-
-    const response = await fetch(targetUrl, {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -41,7 +37,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json(data);
   } catch (error) {
-    console.error('Groq proxy error:', error);
+    console.error('Chat proxy error:', error);
     return res.status(500).json({ error: error.message });
   }
 }
