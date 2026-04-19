@@ -2,6 +2,9 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {
+    "api/chat.js": {
+      "maxDuration": 30
+    },
     "api/groq/[...path].js": {
       "maxDuration": 30
     }

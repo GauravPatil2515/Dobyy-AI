@@ -57,7 +57,7 @@ export async function askGroq(messages, currentState) {
     ...messages
   ]
 
-  const res = await fetch('/api/groq/openai/v1/chat/completions', {
+  const res = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
