@@ -1,17 +1,13 @@
 import { useEffect } from 'react'
 
-export default function Header({ state, dispatch, undo, redo, canUndo, canRedo }) {
-  const wl = {
-    twill22:'2/2 twill', twill21:'2/1 twill',
-    plain:'plain weave', satin5:'5-end satin'
-  }
+export default function Header({ state, dispatch, undo, redo, canUndo, canRedo, onMenuToggle }) {
+  const wl = { twill22:'2/2 twill', twill21:'2/1 twill', plain:'plain weave', satin5:'5-end satin' }
   const total = state.sett.reduce((a,s) => a+s.n, 0)
 
-  // Keyboard shortcuts
   useEffect(() => {
     const onKey = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo() }
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redo() }
+      if ((e.ctrlKey||e.metaKey) && e.key==='z' && !e.shiftKey) { e.preventDefault(); undo() }
+      if ((e.ctrlKey||e.metaKey) && (e.key==='y'||(e.key==='z'&&e.shiftKey))) { e.preventDefault(); redo() }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -20,6 +16,14 @@ export default function Header({ state, dispatch, undo, redo, canUndo, canRedo }
   return (
     <header className="app-header">
       <div className="logo">
+        {/* Hamburger — mobile only */}
+        <button className="menu-btn" onClick={onMenuToggle} title="Open Sett Builder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+            <line x1="3" y1="6"  x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
         <div className="logo-mk">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <rect x="0" y="0" width="7" height="7" fill="white" opacity=".9"/>
@@ -28,9 +32,7 @@ export default function Header({ state, dispatch, undo, redo, canUndo, canRedo }
             <rect x="9" y="9" width="7" height="7" fill="white" opacity=".9"/>
           </svg>
         </div>
-        <span className="logo-text">
-          Dobby<em className="logo-sub"> Studio</em>
-        </span>
+        <span className="logo-text">Dobby<em className="logo-sub"> Studio</em></span>
       </div>
       <div className="header-center">
         <button className="icon-btn" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)">
@@ -45,15 +47,10 @@ export default function Header({ state, dispatch, undo, redo, canUndo, canRedo }
         </button>
       </div>
       <div className="header-right">
-        <span className="badge">
-          {total}T · {state.sett.length} colors · {wl[state.weave]}
-        </span>
-        <button
-          className="icon-btn"
-          onClick={() => dispatch({ type:'TOGGLE_THEME' })}
-          title="Toggle theme">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth="2" width="15" height="15">
+        <span className="badge">{total}T · {state.sett.length} colors · {wl[state.weave]}</span>
+        <button className="icon-btn"
+          onClick={() => dispatch({type:'TOGGLE_THEME'})} title="Toggle theme">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
           </svg>
         </button>

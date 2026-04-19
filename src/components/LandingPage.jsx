@@ -37,7 +37,9 @@ export default function LandingPage({ onEnter }) {
 
   const dismiss = () => {
     setOut(true)
-    setTimeout(onEnter, 750)
+    setTimeout(() => {
+      onEnter()
+    }, 700)
   }
 
   useEffect(() => {
@@ -80,6 +82,20 @@ export default function LandingPage({ onEnter }) {
           <button className="l-btn" onClick={dismiss}>Enter Studio</button>
           <div className="l-btn-sub">Press any key to continue</div>
         </div>
+        <button
+          onClick={dismiss}
+          style={{
+            marginTop: 16,
+            background: 'none',
+            border: 'none',
+            color: 'rgba(255,240,200,.25)',
+            fontSize: 10,
+            letterSpacing: 2,
+            cursor: 'pointer',
+            textTransform: 'uppercase'
+          }}>
+          Skip intro
+        </button>
       </div>
       <div className="l-credit">Dobby Studio · AI Fabric Design · 2026</div>
     </div>

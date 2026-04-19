@@ -1,10 +1,3 @@
-import Groq from 'groq-sdk'
-
-const client = new Groq({
-  apiKey: import.meta.env.VITE_GROQ_API_KEY,
-  dangerouslyAllowBrowser: true
-})
-
 const SYSTEM_PROMPT = `
 You are Dobby, an expert AI fabric and tartan designer.
 The user describes a fabric design in natural language.
@@ -50,44 +43,50 @@ User: "Royal Stewart tartan"
 Response: {"reply":"Royal Stewart — the most recognized tartan in the world.","action":"sett","sett":[{"c":"#cc1122","n":6},{"c":"#111111","n":2},{"c":"#cc1122","n":2},{"c":"#111111","n":2},{"c":"#006633","n":4},{"c":"#111111","n":2},{"c":"#ffffff","n":2},{"c":"#111111","n":2},{"c":"#ffcc00","n":2}],"weave":"twill22","ts":8,"reps":3,"intent":"preset: Royal Stewart"}
 `
 
-export async function askGroq(userMessage, currentState) {
-  const stateContext = `
-Current fabric state:
+export async function askGroq(messages, currentState) {
+  const stateContext = `Current fabric state:
 - Sett: ${JSON.stringify(currentState.sett)}
 - Weave: ${currentState.weave}
 - Thread size: ${currentState.ts}px
-- Repeats: ${currentState.reps}
-`
+- Repeats: ${currentState.reps}`
 
-  const completion = await client.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
-    messages: [
-      { role: 'system',    content: SYSTEM_PROMPT },
-      { role: 'user',      content: stateContext + '\nUser: ' + userMessage }
-    ],
-    temperature: 0.7,
-    max_tokens: 512,
+  // Build messages array with full conversation history
+  const apiMessages = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'system', content: stateContext },
+    ...messages
+  ]
+
+  const res = await fetch('/api/groq/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      messages: apiMessages,
+      temperature: 0.7,
+      max_tokens: 512,
+    })
   })
 
-  const raw = completion.choices[0].message.content.trim()
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err?.error?.message || `HTTP ${res.status}`)
+  }
 
-  // Strip markdown code blocks if model wraps in ```json
-  const cleaned = raw.replace(/^```json\s*/i, '').replace(/```$/,'').trim()
+  const data = await res.json()
+  const raw  = data.choices[0].message.content.trim()
+  const cleaned = raw.replace(/^```json\s*/i,'').replace(/```$/,'').trim()
 
-  let parsed
   try {
-    parsed = JSON.parse(cleaned)
-  } catch(e) {
+    return JSON.parse(cleaned)
+  } catch {
     return {
-      reply: "I had trouble generating that design. Try describing colors like 'red and navy tartan'.",
-      action: 'none',
-      sett: null,
+      reply: "I had trouble with that. Try: 'red and navy tartan' or 'Black Watch'.",
+      action: 'none', sett: null,
       weave: currentState.weave,
       ts: currentState.ts,
       reps: currentState.reps,
       intent: 'parse error'
     }
   }
-
-  return parsed
 }

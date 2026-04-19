@@ -1,5 +1,6 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useFabricRenderer } from '../hooks/useFabricRenderer.js'
+import { copyShareLink } from '../utils/shareUtils.js'
 
 const PANELS = ['fabric', 'draft', 'peg']
 const WEAVE_LABELS = {
@@ -175,7 +176,14 @@ function PegPlan({ state }) {
 
 export default function FabricCanvas({ state, dispatch }) {
   const canvasRef = useRef(null)
+  const [copied, setCopied] = useState(false)
   useFabricRenderer(canvasRef, state)
+
+  const handleShare = async () => {
+    await copyShareLink(state)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <div className="center">
@@ -204,6 +212,9 @@ export default function FabricCanvas({ state, dispatch }) {
               title="Download JSON">⬇ JSON</button>
             <button className="exp-btn" onClick={() => exportWIF(state)}
               title="Download WIF">⬇ WIF</button>
+            <button className="exp-btn share-btn" onClick={handleShare} title="Copy share link">
+              {copied ? '✓ Copied!' : '🔗 Share'}
+            </button>
           </div>
         </div>
       </div>

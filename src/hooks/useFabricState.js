@@ -23,6 +23,7 @@ function reducer(state, action) {
     case 'ADD_STRIPE':    return { ...state, sett: [...state.sett, { c:'#888888', n:4 }] }
     case 'UPDATE_STRIPE': return { ...state, sett: state.sett.map((s,i) => i===action.idx ? {...s,...action.patch} : s) }
     case 'REMOVE_STRIPE': return { ...state, sett: state.sett.length > 1 ? state.sett.filter((_,i) => i!==action.idx) : state.sett }
+    case 'REORDER_SETT':  return { ...state, sett: action.newSett }
     case 'APPLY':         return { ...action.newState }
     default: return state
   }
@@ -31,12 +32,13 @@ function reducer(state, action) {
 // Actions that should be tracked in undo history
 const HISTORY_ACTIONS = [
   'SET_WEAVE','SET_TS','SET_REPS','SET_PRESET',
-  'ADD_STRIPE','UPDATE_STRIPE','REMOVE_STRIPE','APPLY'
+  'ADD_STRIPE','UPDATE_STRIPE','REMOVE_STRIPE','REORDER_SETT','APPLY'
 ]
 
 export function useFabricState() {
   const [state, dispatch] = useReducer(reducer, INITIAL)
   const [loading, setLoading] = useState(false)
+  const [chatHistory, setChatHistory] = useState([])
   const history  = useRef([INITIAL])
   const histIdx  = useRef(0)
   const skipPush = useRef(false)
@@ -75,8 +77,13 @@ export function useFabricState() {
 
   const processPrompt = useCallback(async (text, onReply) => {
     setLoading(true)
+
+    // Add user message to history
+    const userMsg = { role: 'user', content: text }
+    const updatedHistory = [...chatHistory, userMsg].slice(-10) // keep last 10
+
     try {
-      const result = await askGroq(text, state)
+      const result = await askGroq(updatedHistory, state)
       const newState = { ...state }
       if (result.sett && Array.isArray(result.sett) && result.sett.length > 0) {
         newState.sett = result.sett.map(s => ({
@@ -91,14 +98,20 @@ export function useFabricState() {
       if (result.reps && result.reps >= 1 && result.reps <= 6) newState.reps = result.reps
 
       dispatchWithHistory({ type: 'APPLY', newState })
+
+      // Add AI reply to history
+      const assistantMsg = { role: 'assistant', content: result.reply || 'Design updated!' }
+      setChatHistory([...updatedHistory, assistantMsg].slice(-10))
+
       if (onReply) onReply({ reply: result.reply || 'Design updated!', intent: result.intent || 'llm' })
     } catch(err) {
       console.error('Groq error:', err)
-      if (onReply) onReply({ reply: 'Connection error. Check your VITE_GROQ_API_KEY in .env', intent: 'error' })
+      setChatHistory(updatedHistory)
+      if (onReply) onReply({ reply: `Error: ${err.message || 'Check your API key in .env'}`, intent: 'error' })
     } finally {
       setLoading(false)
     }
-  }, [state, dispatchWithHistory])
+  }, [state, chatHistory, dispatchWithHistory])
 
   return { state, dispatch: dispatchWithHistory, processPrompt, loading, undo, redo, canUndo, canRedo }
 }

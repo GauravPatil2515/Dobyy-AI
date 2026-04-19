@@ -8,9 +8,9 @@ const WEAVES = [
   { v:'satin5',  l:'5-End Satin' },
 ]
 
-export default function Sidebar({ state, dispatch }) {
+export default function Sidebar({ state, dispatch, className = '' }) {
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${className}`}>
       <SettBuilder sett={state.sett} dispatch={dispatch}/>
 
       <div className="section">

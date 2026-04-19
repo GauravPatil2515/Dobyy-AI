@@ -259,6 +259,20 @@ input, select, textarea { font-family: var(--fb); color: var(--tx) }
   border: none; background: none;
 }
 .stripe-del:hover { background: #fdf0e8; color: #9a4a1a }
+.drag-handle {
+  display: flex; align-items: center; justify-content: center;
+  width: 16px; flex-shrink: 0; cursor: grab;
+  color: var(--ft); opacity: 0.5; padding: 0 2px;
+}
+.drag-handle:hover  { opacity: 1; color: var(--mt) }
+.drag-handle:active { cursor: grabbing }
+.drag-overlay {
+  box-shadow: 0 8px 24px rgba(28,20,10,.18);
+  background: var(--surf2) !important;
+  border-color: var(--ac) !important;
+  border-radius: 6px;
+  opacity: 0.95;
+}
 .btn-add {
   width: 100%; padding: 5px; border-radius: 6px;
   border: 1.5px dashed var(--bdr);
@@ -327,6 +341,13 @@ input, select, textarea { font-family: var(--fb); color: var(--tx) }
   color: var(--mt); font-weight: 500;
 }
 .exp-btn:hover { background: var(--acl); border-color: var(--ac); color: var(--ac) }
+.share-btn {
+  background: var(--acl) !important;
+  border-color: var(--ac) !important;
+  color: var(--ac) !important;
+  font-weight: 600;
+}
+.share-btn:hover { opacity: .85 }
 .draft-wrap {
   width: 100%; height: 100%; overflow: auto;
   display: flex; flex-direction: column; align-items: center;
@@ -464,6 +485,70 @@ textarea:disabled { opacity: .6; cursor: not-allowed }
   border-radius: 20px; padding: 5px 5px 5px 10px;
 }
 .input-wrap:focus-within { border-color: var(--ac) }
+
+/* ── MOBILE LAYOUT ──────────────────────────────────────────── */
+
+/* Tablet (< 1024px) — hide sidebar, stack chat below canvas */
+@media (max-width: 1024px) {
+  .main {
+    grid-template-columns: 1fr 260px;
+    grid-template-rows: 1fr;
+  }
+  .sidebar { display: none }
+  .sidebar.open {
+    display: flex;
+    position: fixed; left: 0; top: 52px; bottom: 0;
+    width: 230px; z-index: 100;
+    box-shadow: 4px 0 24px rgba(28,20,10,.18);
+  }
+}
+
+/* Mobile (< 700px) — single column stack */
+@media (max-width: 700px) {
+  .app {
+    grid-template-rows: 52px 1fr;
+  }
+  .main {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 320px;
+    overflow: hidden;
+  }
+  .sidebar { display: none }
+  .sidebar.open {
+    width: 85vw;
+    border-right: none;
+    border-radius: 0 16px 16px 0;
+  }
+  .chat-panel {
+    border-left: none;
+    border-top: 1px solid var(--bdr);
+  }
+  .center { min-height: 0 }
+  .canvas-wrap { padding: 8px }
+  .fabric-canvas { border-radius: 8px }
+  .logo-sub { display: none }
+  .badge { display: none }
+  .export-btns { display: none }
+}
+
+/* Sidebar overlay backdrop */
+.sidebar-backdrop {
+  display: none;
+  position: fixed; inset: 0; top: 52px;
+  background: rgba(0,0,0,0.4);
+  z-index: 99;
+}
+.sidebar-backdrop.visible { display: block }
+
+/* Mobile menu button */
+.menu-btn {
+  display: none;
+  width: 32px; height: 32px; border-radius: 6px;
+  align-items: center; justify-content: center;
+  color: var(--mt); border: none;
+  background: var(--off); border: 1px solid var(--bdr);
+}
+@media (max-width: 1024px) { .menu-btn { display: flex } }
 .input-wrap textarea {
   flex: 1; background: none; border: none; outline: none;
   font-size: 11px; resize: none; max-height: 56px;
