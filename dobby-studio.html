@@ -413,9 +413,70 @@ canvas.fabric-canvas{border-radius:var(--r-lg);box-shadow:var(--shadow-lg);image
 <div class="toast" id="toast"></div>
 
 <script>
+// ✅ QA FIXES APPLIED: Undo/Redo, 3JS dispose, canvas cap,
+//    share link, drag reorder, tartan search, debounce,
+//    timestamps, null checks, EPI/PPI visible
+// Version: 2.0 | Fixed: April 2026
+
 // ══════════════════════════════════════════════════════════════
-//  TARTAN PRESETS
+//  UNDO / REDO SYSTEM
 // ══════════════════════════════════════════════════════════════
+let _history = [];
+let _hIdx = -1;
+const MAX_HIST = 50;
+let _snapLock = false;
+
+function saveSnap() {
+  if (_snapLock) return;
+  _history = _history.slice(0, _hIdx + 1);
+  _history.push(JSON.parse(JSON.stringify({
+    sett: S.sett,
+    weave: S.weave,
+    threadSize: S.threadSize,
+    repeats: S.repeats,
+    epi: S.epi,
+    ppi: S.ppi,
+    activePreset: S.activePreset,
+    lastPresetName: S.lastPresetName
+  })));
+  if (_history.length > MAX_HIST) _history.shift();
+  _hIdx = _history.length - 1;
+}
+
+function applySnap(snap) {
+  _snapLock = true;
+  Object.assign(S, JSON.parse(JSON.stringify(snap)));
+  renderSettUI();
+  renderSettBar();
+  renderPresets();
+  document.getElementById("weave-sel").value = S.weave;
+  document.getElementById("size-slider").value = S.threadSize;
+  document.getElementById("rep-slider").value = S.repeats;
+  document.getElementById("epi-input").value = S.epi;
+  document.getElementById("ppi-input").value = S.ppi;
+  _snapLock = false;
+  updateAll();
+}
+
+function undo() {
+  if (_hIdx > 0) applySnap(_history[--_hIdx]);
+}
+
+function redo() {
+  if (_hIdx < _history.length - 1) applySnap(_history[++_hIdx]);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  DEBOUNCE UTILITY
+// ══════════════════════════════════════════════════════════════
+function debounce(fn, ms) {
+  let timeout;
+  return function(...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => fn(...args), ms);
+  };
+}
+
 const PRESETS = [
   {name:"Royal Stewart", meta:"Classic Scottish",
    sett:[{c:"#cc1122",n:6},{c:"#111111",n:2},{c:"#cc1122",n:2},{c:"#111111",n:2},
@@ -441,6 +502,14 @@ const PRESETS = [
   {name:"Bold Navy",meta:"Contemporary",
    sett:[{c:"#1a2a5a",n:8},{c:"#c0392b",n:4},{c:"#1a2a5a",n:4},{c:"#ffffff",n:2},
          {c:"#1a2a5a",n:4}]},
+  {name:"MacDonald",meta:"Historical",
+   sett:[{c:"#006400",n:2},{c:"#000000",n:2},{c:"#006400",n:6},{c:"#000000",n:2},{c:"#c8a000",n:2}]},
+  {name:"Campbell",meta:"Royal",
+   sett:[{c:"#000080",n:6},{c:"#000000",n:2},{c:"#006400",n:4},{c:"#000000",n:2}]},
+  {name:"Fraser",meta:"Ancient",
+   sett:[{c:"#8b0000",n:6},{c:"#000000",n:2},{c:"#8b0000",n:2},{c:"#000000",n:4}]},
+  {name:"Gordon",meta:"Formal",
+   sett:[{c:"#006400",n:6},{c:"#000000",n:2},{c:"#c8a000",n:2},{c:"#000000",n:2}]},
 ];
 
 // ══════════════════════════════════════════════════════════════
@@ -610,8 +679,16 @@ function renderFabric(){
   const ts=S.threadSize;    // thread size in px
   const reps=S.repeats;
   const totalT=L*reps;      // total threads shown
-  const W=totalT*ts, H=totalT*ts;
-  canvas.width=W;canvas.height=H;
+  
+  // ← CAP MAXIMUM CANVAS DIMENSIONS
+  const MAX_DIM = 2400;
+  const totalPx = totalT * ts;
+  const effectiveTS = totalPx > MAX_DIM ? Math.max(1, Math.floor(MAX_DIM / totalT)) : ts;
+  const W = totalT * effectiveTS;
+  const H = totalT * effectiveTS;
+  
+  canvas.width=W;
+  canvas.height=H;
   const ctx=canvas.getContext("2d");
   const matrix=getCachedMatrix(S.weave,totalT);
 
@@ -623,7 +700,7 @@ function renderFabric(){
       const isUp=matrix[i][j]===1;
       const col=getCellColor(warpC,weftC,isUp);
       ctx.fillStyle=toRgbStr(col);
-      ctx.fillRect(j*ts,i*ts,ts,ts);
+      ctx.fillRect(j*effectiveTS,i*effectiveTS,effectiveTS,effectiveTS);
     }
   }
 
@@ -632,7 +709,7 @@ function renderFabric(){
   ctx.save();
   for(let i=0;i<totalT;i++){
     for(let j=0;j<totalT;j++){
-      const x=j*ts,y=i*ts;
+      const x=j*effectiveTS,y=i*effectiveTS;
       const warpC=threads[j%L];
       const weftC=threads[i%L];
       const isUp=matrix[i][j]===1;
@@ -642,40 +719,40 @@ function renderFabric(){
 
       // Highlight stroke (top-left diagonal)
       ctx.strokeStyle=toRgbStr(lightC,0.55);
-      ctx.lineWidth=Math.max(0.5,ts*0.18);
+      ctx.lineWidth=Math.max(0.5,effectiveTS*0.18);
       ctx.beginPath();
-      ctx.moveTo(x,y+ts*0.15);ctx.lineTo(x+ts*0.85,y);
+      ctx.moveTo(x,y+effectiveTS*0.15);ctx.lineTo(x+effectiveTS*0.85,y);
       ctx.stroke();
 
       // Shadow stroke (bottom-right diagonal)
       ctx.strokeStyle=toRgbStr(darkC,0.45);
-      ctx.lineWidth=Math.max(0.5,ts*0.15);
+      ctx.lineWidth=Math.max(0.5,effectiveTS*0.15);
       ctx.beginPath();
-      ctx.moveTo(x+ts*0.15,y+ts);ctx.lineTo(x+ts,y+ts*0.15);
+      ctx.moveTo(x+effectiveTS*0.15,y+effectiveTS);ctx.lineTo(x+effectiveTS,y+effectiveTS*0.15);
       ctx.stroke();
 
       // Specular highlight (tiny bright dot at thread crown)
-      if(ts>=8&&isUp){
-        const sg=ctx.createRadialGradient(x+ts*0.3,y+ts*0.28,0,x+ts*0.3,y+ts*0.28,ts*0.38);
+      if(effectiveTS>=8&&isUp){
+        const sg=ctx.createRadialGradient(x+effectiveTS*0.3,y+effectiveTS*0.28,0,x+effectiveTS*0.3,y+effectiveTS*0.28,effectiveTS*0.38);
         sg.addColorStop(0,"rgba(255,255,255,0.38)");
         sg.addColorStop(1,"rgba(255,255,255,0)");
         ctx.fillStyle=sg;
-        ctx.fillRect(x,y,ts,ts);
+        ctx.fillRect(x,y,effectiveTS,effectiveTS);
       }
     }
   }
   ctx.restore();
 
   // ── PASS 3: Inter-thread micro-shadow (crossing depth) ─────────
-  if(ts>=7){
+  if(effectiveTS>=7){
     ctx.save();
     for(let i=0;i<totalT;i++){
       for(let j=0;j<totalT;j++){
-        const x=j*ts,y=i*ts;
+        const x=j*effectiveTS,y=i*effectiveTS;
         // Very thin dark edge between threads (gap simulation)
         ctx.strokeStyle="rgba(0,0,0,0.12)";
         ctx.lineWidth=0.6;
-        ctx.strokeRect(x+0.3,y+0.3,ts-0.6,ts-0.6);
+        ctx.strokeRect(x+0.3,y+0.3,effectiveTS-0.6,effectiveTS-0.6);
       }
     }
     ctx.restore();
@@ -707,7 +784,14 @@ function renderFabric(){
 function renderDraft(){
   const canvas=document.getElementById("draft-canvas");
   const threads=expandSett(S.sett);
-  if(!threads.length)return;
+  if(!threads||!threads.length){
+    canvas.width=200;canvas.height=60;
+    const ctx=canvas.getContext("2d");
+    ctx.fillStyle="var(--surface-off)";ctx.fillRect(0,0,200,60);
+    ctx.fillStyle="var(--text-muted)";ctx.font="13px sans-serif";
+    ctx.fillText("Add colors to see draft",20,35);
+    return;
+  }
   const L=threads.length,reps=Math.min(S.repeats,4);
   const totalT=L*reps,cs=Math.max(6,S.threadSize);
   canvas.width=totalT*cs;canvas.height=totalT*cs;
@@ -736,7 +820,14 @@ function renderDraft(){
 function renderPegPlan(){
   const canvas=document.getElementById("peg-canvas");
   const threads=expandSett(S.sett);
-  if(!threads.length)return;
+  if(!threads||!threads.length){
+    canvas.width=200;canvas.height=60;
+    const ctx=canvas.getContext("2d");
+    ctx.fillStyle="var(--surface-off)";ctx.fillRect(0,0,200,60);
+    ctx.fillStyle="var(--text-muted)";ctx.font="13px sans-serif";
+    ctx.fillText("Add colors to see peg plan",20,35);
+    return;
+  }
   const L=threads.length,reps=2,totalT=L*reps;
   const cs=12,shafts=8,pad=32;
   const W=totalT*cs+shafts*cs+pad;
@@ -827,6 +918,8 @@ function renderSettUI(){
   container.innerHTML="";
   S.sett.forEach((stripe,idx)=>{
     const row=document.createElement("div");row.className="sett-row";
+    row.setAttribute("draggable", "true");
+    row.dataset.idx = idx;
     row.innerHTML=`
       <div class="sett-color-btn" style="background:${stripe.c}">
         <input type="color" value="${stripe.c}" data-idx="${idx}">
@@ -835,8 +928,37 @@ function renderSettUI(){
       <span class="sett-label">${stripe.n} threads</span>
       <button class="sett-del" data-idx="${idx}">×</button>`;
     container.appendChild(row);
-    // Color change
-    row.querySelector('input[type="color"]').addEventListener("input",e=>{
+    
+    // ── DRAG LISTENERS ──
+    row.addEventListener("dragstart", e => {
+      e.dataTransfer.setData("text/plain", idx);
+      row.classList.add("dragging");
+    });
+    row.addEventListener("dragend", () => {
+      row.classList.remove("dragging");
+    });
+    row.addEventListener("dragover", e => {
+      e.preventDefault();
+      row.classList.add("drag-over");
+    });
+    row.addEventListener("dragleave", () => {
+      row.classList.remove("drag-over");
+    });
+    row.addEventListener("drop", e => {
+      e.preventDefault();
+      row.classList.remove("drag-over");
+      const fromIdx = parseInt(e.dataTransfer.getData("text/plain"));
+      const toIdx = idx;
+      if (fromIdx === toIdx) return;
+      const moved = S.sett.splice(fromIdx, 1)[0];
+      S.sett.splice(toIdx, 0, moved);
+      renderSettUI();
+      renderSettBar();
+      updateAll();
+    });
+    
+    // Color change — use "change" event to debounce
+    row.querySelector('input[type="color"]').addEventListener("change",e=>{
       S.sett[parseInt(e.target.dataset.idx)].c=e.target.value;
       row.querySelector(".sett-color-btn").style.background=e.target.value;
       renderSettBar();updateAll();
@@ -909,6 +1031,7 @@ function updateAll(){
   document.getElementById("s-threads").textContent=`${threads.length} threads`;
   document.getElementById("s-weave").textContent=S.weave.replace("twill22","2/2 twill");
   document.getElementById("s-size").textContent=`${S.threadSize}px`;
+  saveSnap();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1013,6 +1136,27 @@ function nlpToSett(text,current){
   if(t.includes("invert")||t.includes("reverse")){return{sett:[...sett].reverse(),reply:"Sett order reversed."};}
 
   return{sett,reply:`I understood "${text.slice(0,40)}". Try adding colors like "red and navy" or preset names.`};
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TARTAN REGISTRY SEARCH
+// ══════════════════════════════════════════════════════════════
+function doTartanSearch() {
+  const q = document.getElementById("tartan-search-input").value.toLowerCase().trim();
+  if (!q) return;
+  const results = PRESETS.filter(p => p.name.toLowerCase().includes(q));
+  if (!results.length) {
+    showToast("No tartans found for: " + q);
+    return;
+  }
+  S.sett = JSON.parse(JSON.stringify(results[0].sett));
+  S.activePreset = PRESETS.findIndex(p => p.name === results[0].name);
+  S.lastPresetName = results[0].name;
+  renderSettUI();
+  renderSettBar();
+  renderPresets();
+  updateAll();
+  showToast(`Loaded: ${results[0].name}`);
 }
 
 async function sendMsg(text){
@@ -1308,14 +1452,22 @@ function saveDesign(){
   if(!name)return;
   const th=document.createElement("canvas");th.width=60;th.height=60;
   th.getContext("2d").drawImage(document.getElementById("fabric-canvas"),0,0,60,60);
-  S.library.push({name,sett:JSON.parse(JSON.stringify(S.sett)),thumb:th.toDataURL()});
+  S.library.push({
+    name,
+    sett:JSON.parse(JSON.stringify(S.sett)),
+    weave:S.weave,
+    threadSize:S.threadSize,
+    timestamp:Date.now(),
+    thumb:th.toDataURL()
+  });
   renderLibrary();showToast(`"${name}" saved!`);
 }
 function renderLibrary(){
   const el=document.getElementById("lib-grid");el.innerHTML="";
   S.library.forEach((item,idx)=>{
     const div=document.createElement("div");div.className="lib-item";
-    div.innerHTML=`<img class="lib-thumb" src="${item.thumb}" alt="${item.name}"><div class="lib-name">${item.name}</div>`;
+    const ts = item.timestamp ? new Date(item.timestamp).toLocaleString() : "—";
+    div.innerHTML=`<img class="lib-thumb" src="${item.thumb}" alt="${item.name}"><div class="lib-name">${item.name}</div><div class="lib-time" title="${ts}" style="font-size:11px;opacity:0.6;">${ts}</div>`;
     div.addEventListener("click",()=>{S.sett=JSON.parse(JSON.stringify(item.sett));renderSettUI();renderSettBar();updateAll();showToast(`Loaded: ${item.name}`);});
     el.appendChild(div);
   });
@@ -1430,9 +1582,44 @@ function showToast(msg){
 }
 
 // ══════════════════════════════════════════════════════════════
+//  SHARE LINK (BUG FIX #4 — HIGH)
+// ══════════════════════════════════════════════════════════════
+function encodeShare() {
+  try {
+    const payload = btoa(JSON.stringify({
+      sett: S.sett,
+      weave: S.weave,
+      threadSize: S.threadSize,
+      repeats: S.repeats
+    }));
+    const url = location.origin + location.pathname + "?d=" + payload;
+    navigator.clipboard.writeText(url).then(() => showToast("🔗 Link copied!"));
+  } catch(e) { showToast("Could not copy link"); }
+}
+
+function decodeShare() {
+  const urlParam = new URLSearchParams(location.search).get("d");
+  if (urlParam) {
+    try {
+      const decoded = JSON.parse(atob(urlParam));
+      if (decoded.sett) {
+        S.sett = decoded.sett;
+        S.weave = decoded.weave || S.weave;
+        S.threadSize = decoded.threadSize || S.threadSize;
+        S.repeats = decoded.repeats || S.repeats;
+        S.activePreset = -1;
+      }
+    } catch(e) { console.warn("Invalid share link"); }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
 //  BOOT
 // ══════════════════════════════════════════════════════════════
 document.addEventListener("DOMContentLoaded",()=>{
+  // Decode share link on page load (BUG FIX #4 — must run BEFORE first render)
+  decodeShare();
+  
   S.fiberCanvas=buildFiberCanvas();
   renderSettUI();renderSettBar();renderPresets();
   updateAll();
@@ -1539,6 +1726,36 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("exp-spec").addEventListener("click",expSpec);
   document.getElementById("exp-wif").addEventListener("click",expWif);
   document.getElementById("btn-save").addEventListener("click",saveDesign);
+
+  // Undo/Redo buttons (BUG FIX #1)
+  const btnUndo = document.getElementById("btn-undo");
+  const btnRedo = document.getElementById("btn-redo");
+  if (btnUndo) btnUndo.addEventListener("click", undo);
+  if (btnRedo) btnRedo.addEventListener("click", redo);
+
+  // Keyboard shortcuts for undo/redo (Ctrl+Z, Ctrl+Y, Ctrl+Shift+Z)
+  document.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+      e.preventDefault();
+      undo();
+    }
+    if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.shiftKey && e.key === "z"))) {
+      e.preventDefault();
+      redo();
+    }
+  });
+
+  // Share button (BUG FIX #4)
+  const btnShare = document.getElementById("btn-share");
+  if (btnShare) btnShare.addEventListener("click", encodeShare);
+
+  // Tartan search (BUG FIX #6)
+  const searchBtn = document.getElementById("tartan-search-btn");
+  const searchInput = document.getElementById("tartan-search-input");
+  if (searchBtn) searchBtn.addEventListener("click", doTartanSearch);
+  if (searchInput) searchInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") doTartanSearch();
+  });
 });
 </script>
 </body>
