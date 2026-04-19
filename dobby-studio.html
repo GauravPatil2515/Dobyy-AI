@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Dobby Studio — Tartan & Fabric Designer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root{
+  --bg:#f5f3ee;--surface:#faf9f6;--surface-2:#ffffff;--surface-off:#ede9e1;
+  --border:rgba(28,20,10,0.10);--divider:rgba(28,20,10,0.06);
+  --text:#1c140a;--text-muted:#7a7060;--text-faint:#b8b0a4;
+  --accent:#5c7a5a;--accent-h:#3e5c3d;--accent-light:#e8efe7;
+  --warn:#9a4a1a;--warn-light:#fdf0e8;
+  --shadow-sm:0 1px 3px rgba(28,20,10,0.07);
+  --shadow-md:0 4px 16px rgba(28,20,10,0.09);
+  --shadow-lg:0 12px 40px rgba(28,20,10,0.14);
+  --r-sm:6px;--r-md:10px;--r-lg:14px;--r-xl:20px;
+  --font-d:'Cormorant Garamond',Georgia,serif;
+  --font-b:'DM Sans','Helvetica Neue',sans-serif;
+  --trans:180ms cubic-bezier(0.16,1,0.3,1);
+}
+[data-theme="dark"]{
+  --bg:#141210;--surface:#1a1815;--surface-2:#201e1b;--surface-off:#252220;
+  --border:rgba(255,245,235,0.09);--divider:rgba(255,245,235,0.05);
+  --text:#e8e0d4;--text-muted:#8a8070;--text-faint:#5a5248;
+  --accent:#7aaa78;--accent-light:#1e2e1e;
+  --warn:#e07040;--warn-light:#2a1a10;
+  --shadow-sm:0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md:0 4px 16px rgba(0,0,0,0.4);
+  --shadow-lg:0 12px 40px rgba(0,0,0,0.5);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+body{font-family:var(--font-b);font-size:14px;color:var(--text);background:var(--bg);
+  min-height:100dvh;line-height:1.6;}
+button{cursor:pointer;font-family:var(--font-b);border:none;background:none;color:inherit}
+input,textarea,select{font-family:var(--font-b);color:var(--text)}
+a,button,[role="button"]{transition:color var(--trans),background var(--trans),
+  border-color var(--trans),box-shadow var(--trans),opacity var(--trans)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:var(--r-sm)}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
+
+/* ── LAYOUT ── */
+.app{display:grid;grid-template-rows:52px 1fr;height:100dvh;overflow:hidden}
+.main{display:grid;grid-template-columns:240px 1fr 300px;overflow:hidden}
+
+/* ── HEADER ── */
+header{display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;background:var(--surface);border-bottom:1px solid var(--border);
+  box-shadow:var(--shadow-sm);z-index:100}
+.logo{display:flex;align-items:center;gap:9px;text-decoration:none}
+.logo-mark{display:flex;align-items:center;justify-content:center;
+  width:30px;height:30px;border-radius:var(--r-sm);background:var(--text);flex-shrink:0}
+.logo-text{font-family:var(--font-d);font-size:19px;font-weight:600;color:var(--text)}
+.logo-sub{font-style:italic;font-size:13px;color:var(--text-muted);margin-left:1px}
+.hdr-right{display:flex;align-items:center;gap:6px}
+.btn-icon{width:34px;height:34px;border-radius:var(--r-sm);display:flex;align-items:center;
+  justify-content:center;color:var(--text-muted)}
+.btn-icon:hover{background:var(--surface-off);color:var(--text)}
+.btn-icon svg{width:16px;height:16px}
+#pattern-badge{font-size:10px;color:var(--text-faint);font-family:monospace;
+  background:var(--surface-off);padding:2px 8px;border-radius:99px;border:1px solid var(--border)}
+
+/* ── SIDEBAR ── */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);
+  overflow-y:auto;display:flex;flex-direction:column;gap:0}
+.sec{padding:12px;border-bottom:1px solid var(--divider)}
+.sec-title{font-size:9px;font-weight:600;letter-spacing:1.3px;text-transform:uppercase;
+  color:var(--text-faint);margin-bottom:9px}
+
+/* SETT BUILDER */
+.sett-strips{display:flex;flex-direction:column;gap:4px;margin-bottom:6px}
+.sett-row{display:flex;align-items:center;gap:5px;padding:5px 7px;
+  background:var(--surface-off);border:1px solid var(--border);border-radius:var(--r-sm);
+  position:relative}
+.sett-color-btn{width:20px;height:20px;border-radius:4px;border:1.5px solid var(--border);
+  cursor:pointer;flex-shrink:0;overflow:hidden;position:relative}
+.sett-color-btn input[type="color"]{position:absolute;inset:-4px;opacity:0;width:200%;height:200%;cursor:pointer}
+.sett-count{width:40px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;
+  background:var(--surface-2);font-size:11px;text-align:center}
+.sett-count:focus{outline:none;border-color:var(--accent)}
+.sett-label{flex:1;font-size:10px;color:var(--text-muted)}
+.sett-del{width:18px;height:18px;border-radius:3px;font-size:13px;color:var(--text-faint);
+  display:flex;align-items:center;justify-content:center}
+.sett-del:hover{background:var(--warn-light);color:var(--warn)}
+.sett-preview{height:14px;border-radius:3px;overflow:hidden;display:flex;margin-bottom:5px;border:1px solid var(--border)}
+.btn-add-stripe{width:100%;padding:5px;border-radius:var(--r-sm);border:1.5px dashed var(--border);
+  font-size:11px;color:var(--text-muted);background:transparent;margin-top:2px}
+.btn-add-stripe:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
+
+/* PRESETS */
+.preset-list{display:flex;flex-direction:column;gap:3px}
+.preset-item{display:flex;align-items:center;gap:8px;padding:6px 8px;
+  border-radius:var(--r-sm);cursor:pointer;border:1px solid transparent;transition:all var(--trans)}
+.preset-item:hover{background:var(--surface-off);border-color:var(--border)}
+.preset-item.active{background:var(--accent-light);border-color:var(--accent)}
+.preset-swatch{width:40px;height:22px;border-radius:3px;flex-shrink:0;border:1px solid var(--border)}
+.preset-name{font-size:11px;font-weight:500;color:var(--text)}
+.preset-meta{font-size:9px;color:var(--text-faint)}
+
+/* WEAVE & CONTROLS */
+.ctrl-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.ctrl-label{font-size:10px;color:var(--text-muted)}
+.ctrl-select{padding:3px 6px;border:1px solid var(--border);border-radius:var(--r-sm);
+  background:var(--surface-2);font-size:11px;color:var(--text)}
+.slider-wrap{display:flex;align-items:center;gap:6px}
+.ctrl-slider{flex:1;accent-color:var(--accent);height:3px}
+.ctrl-val{font-size:10px;color:var(--text-muted);min-width:24px;text-align:right;font-family:monospace}
+
+/* LIBRARY */
+.lib-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px}
+.lib-item{border-radius:var(--r-sm);overflow:hidden;cursor:pointer;
+  border:1.5px solid transparent;transition:all var(--trans)}
+.lib-item:hover{border-color:var(--accent);box-shadow:var(--shadow-sm)}
+.lib-thumb{width:100%;aspect-ratio:1;display:block;image-rendering:auto}
+.lib-name{font-size:9px;padding:2px 4px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn-save{width:100%;padding:6px;border-radius:var(--r-sm);border:1px dashed var(--border);
+  background:transparent;font-size:11px;color:var(--text-muted)}
+.btn-save:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
+
+/* ── CENTER ── */
+.center{display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.viz-header{display:flex;align-items:center;justify-content:space-between;
+  padding:8px 14px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.viz-tabs{display:flex;gap:2px;background:var(--surface-off);padding:2px;border-radius:var(--r-sm)}
+.viz-tab{padding:4px 10px;border-radius:4px;font-size:11px;font-weight:500;
+  color:var(--text-muted);cursor:pointer;transition:all var(--trans)}
+.viz-tab.active{background:var(--surface-2);color:var(--text);box-shadow:var(--shadow-sm)}
+.viz-ctrls{display:flex;align-items:center;gap:6px}
+.zoom-btn{width:24px;height:24px;border-radius:var(--r-sm);background:var(--surface-off);
+  border:1px solid var(--border);font-size:13px;display:flex;align-items:center;justify-content:center;color:var(--text-muted)}
+.zoom-btn:hover{background:var(--surface-2);color:var(--text)}
+.repeat-ctrl{display:flex;align-items:center;gap:3px;font-size:10px;color:var(--text-muted)}
+.repeat-ctrl input{width:36px;padding:2px 4px;border:1px solid var(--border);
+  border-radius:4px;background:var(--surface-2);font-size:10px;text-align:center}
+
+.viz-body{flex:1;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center}
+.viz-panel{width:100%;height:100%;display:none;align-items:center;justify-content:center;overflow:auto;padding:12px}
+.viz-panel.active{display:flex}
+canvas.fabric-canvas{border-radius:var(--r-lg);box-shadow:var(--shadow-lg);image-rendering:auto}
+#three-canvas{border-radius:var(--r-lg);box-shadow:var(--shadow-lg)}
+
+.status-bar{padding:4px 14px;background:var(--surface);border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;flex-shrink:0}
+.pill{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--text-muted);
+  background:var(--surface-off);padding:2px 7px;border-radius:99px;font-family:monospace}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--accent)}
+.warn-bar{padding:5px 14px;background:var(--warn-light);border-top:1px solid rgba(154,74,26,.15);
+  font-size:10px;color:var(--warn);display:none;align-items:center;gap:5px;flex-shrink:0}
+.warn-bar.show{display:flex}
+
+/* ── CHAT PANEL ── */
+.chat{background:var(--surface);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden}
+.chat-hdr{padding:11px 13px;border-bottom:1px solid var(--border);flex-shrink:0}
+.chat-title{font-family:var(--font-d);font-size:16px;font-weight:600;line-height:1.2}
+.chat-sub{font-size:9px;color:var(--text-faint);margin-top:1px}
+
+/* upload */
+.upload-zone{margin:8px 12px;border:1.5px dashed var(--border);border-radius:var(--r-lg);
+  padding:10px;text-align:center;cursor:pointer;transition:all var(--trans);background:var(--bg);flex-shrink:0}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:var(--accent-light)}
+.upload-zone input{display:none}
+.upload-txt{font-size:10px;color:var(--text-muted);line-height:1.4}
+.upload-txt strong{color:var(--text)}
+.upload-preview{width:100%;margin-top:5px;border-radius:var(--r-sm);display:none;max-height:60px;object-fit:cover;border:1px solid var(--border)}
+
+.chat-msgs{flex:1;overflow-y:auto;padding:9px 12px;display:flex;flex-direction:column;gap:7px}
+.msg{display:flex;flex-direction:column;gap:2px;animation:msgIn .18s ease}
+@keyframes msgIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.msg.user{align-items:flex-end}.msg.ai{align-items:flex-start}
+.bubble{max-width:90%;padding:7px 10px;border-radius:var(--r-lg);font-size:11px;line-height:1.5}
+.msg.user .bubble{background:var(--text);color:var(--bg);border-bottom-right-radius:3px}
+.msg.ai .bubble{background:var(--surface-2);border:1px solid var(--border);border-bottom-left-radius:3px}
+.msg-meta{font-size:9px;color:var(--text-faint);font-family:monospace;background:var(--surface-off);
+  padding:2px 6px;border-radius:3px;max-width:90%;border:1px solid var(--divider)}
+.msg-time{font-size:9px;color:var(--text-faint)}
+
+.chips{padding:5px 12px;display:flex;flex-wrap:wrap;gap:3px;flex-shrink:0;border-top:1px solid var(--divider)}
+.chip{padding:3px 8px;border-radius:var(--r-sm);background:var(--surface-off);
+  border:1px solid var(--border);font-size:9px;color:var(--text-muted);cursor:pointer;transition:all var(--trans)}
+.chip:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent)}
+
+.chat-input-area{padding:9px 12px;border-top:1px solid var(--border);flex-shrink:0}
+.input-wrap{display:flex;align-items:flex-end;gap:6px;background:var(--surface-2);
+  border:1.5px solid var(--border);border-radius:var(--r-xl);padding:6px 6px 6px 11px;
+  transition:border-color var(--trans)}
+.input-wrap:focus-within{border-color:var(--accent)}
+#chat-in{flex:1;background:none;border:none;outline:none;font-size:11px;
+  resize:none;max-height:64px;line-height:1.5;color:var(--text)}
+#chat-in::placeholder{color:var(--text-faint)}
+.btn-send{width:30px;height:30px;border-radius:50%;background:var(--text);color:var(--bg);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.btn-send:hover{opacity:.82;transform:scale(1.05)}
+.btn-send svg{width:13px;height:13px}
+.btn-send.loading{animation:pulse 0.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.export-row{padding:8px 12px;border-top:1px solid var(--border);display:flex;gap:4px;flex-shrink:0}
+.btn-exp{flex:1;padding:6px;border-radius:var(--r-sm);font-size:10px;font-weight:500;
+  border:1px solid var(--border);background:var(--surface-off);color:var(--text-muted);transition:all var(--trans)}
+.btn-exp:hover{background:var(--surface-2);color:var(--text)}
+.btn-exp.primary{background:var(--text);color:var(--bg);border-color:var(--text)}
+.btn-exp.primary:hover{opacity:.85}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(12px);
+  background:var(--text);color:var(--bg);padding:7px 14px;border-radius:var(--r-xl);
+  font-size:11px;font-weight:500;opacity:0;transition:all .22s ease;z-index:999;pointer-events:none;
+  box-shadow:var(--shadow-lg)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* sett preview bar in sidebar */
+.sett-vis{height:18px;width:100%;border-radius:3px;overflow:hidden;display:flex;margin-top:4px;border:1px solid var(--border)}
+</style>
+</head>
+<body>
+<div class="app">
+<!-- HEADER -->
+<header>
+  <a class="logo" href="#">
+    <div class="logo-mark">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <rect x="0" y="0" width="8" height="8" fill="white" opacity=".9"/>
+        <rect x="10" y="0" width="8" height="8" fill="white" opacity=".5"/>
+        <rect x="0" y="10" width="8" height="8" fill="white" opacity=".5"/>
+        <rect x="10" y="10" width="8" height="8" fill="white" opacity=".9"/>
+      </svg>
+    </div>
+    <span class="logo-text">Dobby<span class="logo-sub"> Studio</span></span>
+  </a>
+  <div class="hdr-right">
+    <span id="pattern-badge">Royal Stewart · 2/2 twill</span>
+    <button class="btn-icon" id="theme-btn" aria-label="Toggle theme">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </div>
+</header>
+
+<div class="main">
+<!-- ══ SIDEBAR ══ -->
+<aside class="sidebar">
+
+  <!-- SETT BUILDER -->
+  <div class="sec">
+    <div class="sec-title">Sett Builder</div>
+    <div class="sett-vis" id="sett-vis"></div>
+    <div style="height:8px"></div>
+    <div class="sett-strips" id="sett-strips"></div>
+    <button class="btn-add-stripe" id="btn-add">＋ Add Color Stripe</button>
+  </div>
+
+  <!-- PRESETS -->
+  <div class="sec">
+    <div class="sec-title">Tartan Presets</div>
+    <div class="preset-list" id="preset-list"></div>
+  </div>
+
+  <!-- WEAVE & ZOOM -->
+  <div class="sec">
+    <div class="sec-title">Weave Structure</div>
+    <div class="ctrl-row">
+      <span class="ctrl-label">Structure</span>
+      <select class="ctrl-select" id="weave-sel">
+        <option value="twill22">2/2 Twill (Tartan)</option>
+        <option value="twill21">2/1 Twill</option>
+        <option value="plain">Plain Weave</option>
+        <option value="satin5">5-End Satin</option>
+      </select>
+    </div>
+    <div class="ctrl-row" style="margin-top:8px">
+      <span class="ctrl-label">Thread size</span>
+      <div class="slider-wrap" style="width:140px">
+        <input type="range" class="ctrl-slider" id="size-slider" min="4" max="20" value="8">
+        <span class="ctrl-val" id="size-val">8px</span>
+      </div>
+    </div>
+    <div class="ctrl-row" style="margin-top:4px">
+      <span class="ctrl-label">Repeats</span>
+      <div class="slider-wrap" style="width:140px">
+        <input type="range" class="ctrl-slider" id="rep-slider" min="1" max="6" value="3">
+        <span class="ctrl-val" id="rep-val">3×</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIBRARY -->
+  <div class="sec" style="flex:1">
+    <div class="sec-title">Saved Designs</div>
+    <div class="lib-grid" id="lib-grid"></div>
+    <button class="btn-save" id="btn-save">＋ Save Current Design</button>
+  </div>
+</aside>
+
+<!-- ══ CENTER ══ -->
+<div class="center">
+  <div class="viz-header">
+    <div class="viz-tabs">
+      <button class="viz-tab active" data-panel="fabric">Fabric</button>
+      <button class="viz-tab" data-panel="draft">Draft Grid</button>
+      <button class="viz-tab" data-panel="peg">Peg Plan</button>
+      <button class="viz-tab" data-panel="three">3D Drape</button>
+    </div>
+    <div class="viz-ctrls">
+      <button class="zoom-btn" id="zoom-out">−</button>
+      <button class="zoom-btn" id="zoom-in">+</button>
+    </div>
+  </div>
+  <div class="viz-body">
+    <div class="viz-panel active" id="panel-fabric"><canvas id="fabric-canvas" class="fabric-canvas"></canvas></div>
+    <div class="viz-panel" id="panel-draft"><canvas id="draft-canvas" class="fabric-canvas"></canvas></div>
+    <div class="viz-panel" id="panel-peg"><canvas id="peg-canvas" class="fabric-canvas"></canvas></div>
+    <div class="viz-panel" id="panel-three"><canvas id="three-canvas"></canvas></div>
+  </div>
+  <div class="warn-bar" id="warn-bar"><span>⚠</span><span id="warn-text"></span></div>
+  <div class="status-bar">
+    <div class="pill"><div class="dot"></div><span id="s-status">Ready</span></div>
+    <div class="pill" id="s-threads">0 threads</div>
+    <div class="pill" id="s-weave">2/2 twill</div>
+    <div class="pill" id="s-size">8px</div>
+  </div>
+</div>
+
+<!-- ══ CHAT ══ -->
+<div class="chat">
+  <div class="chat-hdr">
+    <div class="chat-title">Design Assistant</div>
+    <div class="chat-sub">Natural language → tartan pattern</div>
+  </div>
+  <div class="upload-zone" id="upload-zone">
+    <input type="file" id="img-input" accept="image/*">
+    <div style="font-size:18px;margin-bottom:2px">🖼</div>
+    <div class="upload-txt"><strong>Drop image</strong> to convert → dobby grid</div>
+    <img id="upload-prev" class="upload-preview" alt="preview">
+  </div>
+  <div class="chat-msgs" id="chat-msgs">
+    <div class="msg ai">
+      <div class="bubble">Hello! Try <em>"red and navy tartan"</em> or <em>"dark green plaid with black stripes"</em>. I'll build the sett automatically ✦</div>
+      <span class="msg-time">Now</span>
+    </div>
+  </div>
+  <div class="chips" id="chips">
+    <button class="chip">Royal Stewart</button>
+    <button class="chip">Black Watch</button>
+    <button class="chip">Navy and red plaid</button>
+    <button class="chip">Pastel rainbow tartan</button>
+    <button class="chip">Make it finer</button>
+    <button class="chip">Bold dark plaid</button>
+  </div>
+  <div class="chat-input-area">
+    <div class="input-wrap">
+      <textarea id="chat-in" rows="1" placeholder="Describe your tartan…" maxlength="300"></textarea>
+      <button class="btn-send" id="btn-send" aria-label="Send">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <div class="export-row">
+    <button class="btn-exp" id="exp-png">⬇ PNG</button>
+    <button class="btn-exp" id="exp-json">⬇ JSON</button>
+    <button class="btn-exp primary" id="exp-wif">⬇ WIF</button>
+  </div>
+</div>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  TARTAN PRESETS
+// ══════════════════════════════════════════════════════════════
+const PRESETS = [
+  {name:"Royal Stewart", meta:"Classic Scottish",
+   sett:[{c:"#cc1122",n:6},{c:"#111111",n:2},{c:"#cc1122",n:2},{c:"#111111",n:2},
+         {c:"#006633",n:4},{c:"#111111",n:2},{c:"#ffffff",n:2},{c:"#111111",n:2},
+         {c:"#ffffff",n:2},{c:"#111111",n:2},{c:"#ffcc00",n:2}]},
+  {name:"Black Watch", meta:"Military classic",
+   sett:[{c:"#111111",n:6},{c:"#003366",n:6},{c:"#111111",n:6},{c:"#005522",n:12},
+         {c:"#111111",n:6},{c:"#003366",n:6}]},
+  {name:"Burberry",meta:"Heritage check",
+   sett:[{c:"#c8a96e",n:6},{c:"#ffffff",n:2},{c:"#1a1a1a",n:1},{c:"#ffffff",n:2},
+         {c:"#cc2211",n:2},{c:"#ffffff",n:2},{c:"#1a1a1a",n:1},{c:"#ffffff",n:2}]},
+  {name:"MacGregor",meta:"Red & black",
+   sett:[{c:"#cc2211",n:8},{c:"#111111",n:4},{c:"#cc2211",n:8},{c:"#005522",n:4}]},
+  {name:"Dress Stewart",meta:"Ceremonial",
+   sett:[{c:"#cc1122",n:6},{c:"#ffffff",n:2},{c:"#cc1122",n:2},{c:"#ffffff",n:2},
+         {c:"#003399",n:6},{c:"#005522",n:6},{c:"#ffffff",n:2},{c:"#ffcc00",n:2}]},
+  {name:"Hunting Stewart",meta:"Muted greens",
+   sett:[{c:"#2a4a1a",n:6},{c:"#111111",n:2},{c:"#2a4a1a",n:2},{c:"#111111",n:2},
+         {c:"#5a3a1a",n:4},{c:"#111111",n:2},{c:"#8a8a5a",n:2}]},
+  {name:"Pastel Plaid",meta:"Modern soft",
+   sett:[{c:"#e8a0a0",n:6},{c:"#a0c0e8",n:6},{c:"#a0e8b0",n:6},{c:"#e8e0a0",n:4},
+         {c:"#c0a0e8",n:4}]},
+  {name:"Bold Navy",meta:"Contemporary",
+   sett:[{c:"#1a2a5a",n:8},{c:"#c0392b",n:4},{c:"#1a2a5a",n:4},{c:"#ffffff",n:2},
+         {c:"#1a2a5a",n:4}]},
+];
+
+// ══════════════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════════════
+let S = {
+  sett: JSON.parse(JSON.stringify(PRESETS[0].sett)),
+  weave: "twill22",
+  threadSize: 8,
+  repeats: 3,
+  activePanel: "fabric",
+  library: [],
+  activePreset: 0,
+  fiberCanvas: null,
+};
+
+// ══════════════════════════════════════════════════════════════
+//  COLOUR UTILITIES
+// ══════════════════════════════════════════════════════════════
+function hexToRgb(h){
+  const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);
+  return{r,g,b};
+}
+function blend(c1,c2,t){
+  return{r:Math.round(c1.r*t+c2.r*(1-t)),
+         g:Math.round(c1.g*t+c2.g*(1-t)),
+         b:Math.round(c1.b*t+c2.b*(1-t))};
+}
+function toRgbStr(c,a=1){return`rgba(${c.r},${c.g},${c.b},${a})`;}
+function lightenRgb(c,a){return{r:Math.min(255,c.r+a),g:Math.min(255,c.g+a),b:Math.min(255,c.b+a)};}
+function darkenRgb(c,a){return{r:Math.max(0,c.r-a),g:Math.max(0,c.g-a),b:Math.max(0,c.b-a)};}
+
+// ══════════════════════════════════════════════════════════════
+//  SETT → FLAT THREAD COLOR ARRAY
+// ══════════════════════════════════════════════════════════════
+function expandSett(sett){
+  const arr=[];
+  sett.forEach(s=>{for(let i=0;i<s.n;i++)arr.push(s.c);});
+  return arr;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  WEAVE MATRIX GENERATORS
+// ══════════════════════════════════════════════════════════════
+function makeWeaveMatrix(type,size){
+  const m=[];
+  for(let i=0;i<size;i++){
+    const row=[];
+    for(let j=0;j<size;j++){
+      if(type==="twill22") row.push((i+j)%4<2?1:0);
+      else if(type==="twill21") row.push((i+j)%3<2?1:0);
+      else if(type==="plain") row.push((i+j)%2);
+      else if(type==="satin5") row.push((i*2+j)%5===0?1:0);
+      else row.push((i+j)%4<2?1:0);
+    }
+    m.push(row);
+  }
+  return m;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  OPTICAL COLOR MIXING  (core tartan algorithm)
+// ══════════════════════════════════════════════════════════════
+function getCellColor(warpColor, weftColor, isWarpUp){
+  const wc=hexToRgb(warpColor), wfc=hexToRgb(weftColor);
+  // 70% dominant thread + 30% underneath = optical interleaving
+  return isWarpUp ? blend(wc,wfc,0.70) : blend(wfc,wc,0.70);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  FIBER NOISE CANVAS (pre-generated)
+// ══════════════════════════════════════════════════════════════
+function buildFiberCanvas(){
+  const c=document.createElement("canvas");c.width=256;c.height=256;
+  const ctx=c.getContext("2d");const id=ctx.createImageData(256,256);const d=id.data;
+  for(let y=0;y<256;y++){
+    for(let x=0;x<256;x++){
+      const idx=(y*256+x)*4;
+      const n=Math.sin(x*0.9+y*0.3)*0.35+Math.sin(x*2.3+y*0.8)*0.2+
+              Math.sin(x*0.4+y*3.1)*0.15+Math.sin(x*5.1+y*1.2)*0.08+
+              Math.sin(x*0.6-y*0.5)*0.22;
+      const v=Math.floor((n+1)*0.5*22);
+      d[idx]=d[idx+1]=d[idx+2]=128+v;d[idx+3]=255;
+    }
+  }
+  ctx.putImageData(id,0,0);return c;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  MASTER RENDER: PHOTOREALISTIC TARTAN FABRIC
+//  Pipeline: optical mix → twill stroke → fiber noise → vignette
+// ══════════════════════════════════════════════════════════════
+function renderFabric(){
+  const canvas=document.getElementById("fabric-canvas");
+  const threads=expandSett(S.sett);
+  if(!threads.length)return;
+  const L=threads.length;
+  const ts=S.threadSize;    // thread size in px
+  const reps=S.repeats;
+  const totalT=L*reps;      // total threads shown
+  const W=totalT*ts, H=totalT*ts;
+  canvas.width=W;canvas.height=H;
+  const ctx=canvas.getContext("2d");
+  const matrix=makeWeaveMatrix(S.weave,totalT);
+
+  // ── PASS 1: Fill each cell with optical-mix color ──────────────
+  for(let i=0;i<totalT;i++){
+    for(let j=0;j<totalT;j++){
+      const warpC=threads[j%L];
+      const weftC=threads[i%L];
+      const isUp=matrix[i][j]===1;
+      const col=getCellColor(warpC,weftC,isUp);
+      ctx.fillStyle=toRgbStr(col);
+      ctx.fillRect(j*ts,i*ts,ts,ts);
+    }
+  }
+
+  // ── PASS 2: Twill diagonal yarn texture strokes ────────────────
+  // Draws fine diagonal lines to simulate visible thread structure
+  ctx.save();
+  for(let i=0;i<totalT;i++){
+    for(let j=0;j<totalT;j++){
+      const x=j*ts,y=i*ts;
+      const warpC=threads[j%L];
+      const weftC=threads[i%L];
+      const isUp=matrix[i][j]===1;
+      const baseCol=getCellColor(warpC,weftC,isUp);
+      const lightC=lightenRgb(baseCol,55);
+      const darkC=darkenRgb(baseCol,45);
+
+      // Highlight stroke (top-left diagonal)
+      ctx.strokeStyle=toRgbStr(lightC,0.55);
+      ctx.lineWidth=Math.max(0.5,ts*0.18);
+      ctx.beginPath();
+      ctx.moveTo(x,y+ts*0.15);ctx.lineTo(x+ts*0.85,y);
+      ctx.stroke();
+
+      // Shadow stroke (bottom-right diagonal)
+      ctx.strokeStyle=toRgbStr(darkC,0.45);
+      ctx.lineWidth=Math.max(0.5,ts*0.15);
+      ctx.beginPath();
+      ctx.moveTo(x+ts*0.15,y+ts);ctx.lineTo(x+ts,y+ts*0.15);
+      ctx.stroke();
+
+      // Specular highlight (tiny bright dot at thread crown)
+      if(ts>=8&&isUp){
+        const sg=ctx.createRadialGradient(x+ts*0.3,y+ts*0.28,0,x+ts*0.3,y+ts*0.28,ts*0.38);
+        sg.addColorStop(0,"rgba(255,255,255,0.38)");
+        sg.addColorStop(1,"rgba(255,255,255,0)");
+        ctx.fillStyle=sg;
+        ctx.fillRect(x,y,ts,ts);
+      }
+    }
+  }
+  ctx.restore();
+
+  // ── PASS 3: Inter-thread micro-shadow (crossing depth) ─────────
+  if(ts>=7){
+    ctx.save();
+    for(let i=0;i<totalT;i++){
+      for(let j=0;j<totalT;j++){
+        const x=j*ts,y=i*ts;
+        // Very thin dark edge between threads (gap simulation)
+        ctx.strokeStyle="rgba(0,0,0,0.12)";
+        ctx.lineWidth=0.6;
+        ctx.strokeRect(x+0.3,y+0.3,ts-0.6,ts-0.6);
+      }
+    }
+    ctx.restore();
+  }
+
+  // ── PASS 4: Fiber noise overlay (multiply blend) ───────────────
+  if(S.fiberCanvas){
+    ctx.save();
+    ctx.globalCompositeOperation="multiply";
+    ctx.globalAlpha=0.14;
+    const pat=ctx.createPattern(S.fiberCanvas,"repeat");
+    ctx.fillStyle=pat;ctx.fillRect(0,0,W,H);
+    ctx.restore();
+  }
+
+  // ── PASS 5: Subtle vignette ─────────────────────────────────────
+  const vg=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.28,W/2,H/2,Math.max(W,H)*0.75);
+  vg.addColorStop(0,"rgba(0,0,0,0)");
+  vg.addColorStop(1,"rgba(0,0,0,0.10)");
+  ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
+
+  // Update 3D if active
+  if(S.activePanel==="three") setTimeout(update3DTexture,40);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  DRAFT GRID RENDERER (colored stripe view)
+// ══════════════════════════════════════════════════════════════
+function renderDraft(){
+  const canvas=document.getElementById("draft-canvas");
+  const threads=expandSett(S.sett);
+  if(!threads.length)return;
+  const L=threads.length,reps=Math.min(S.repeats,4);
+  const totalT=L*reps,cs=Math.max(6,S.threadSize);
+  canvas.width=totalT*cs;canvas.height=totalT*cs;
+  const ctx=canvas.getContext("2d");
+  const matrix=makeWeaveMatrix(S.weave,totalT);
+  for(let i=0;i<totalT;i++){
+    for(let j=0;j<totalT;j++){
+      const isUp=matrix[i][j]===1;
+      ctx.fillStyle=isUp?threads[j%L]:threads[i%L];
+      ctx.fillRect(j*cs,i*cs,cs,cs);
+      ctx.strokeStyle="rgba(0,0,0,0.08)";
+      ctx.strokeRect(j*cs+.5,i*cs+.5,cs-1,cs-1);
+    }
+  }
+  // Axis labels
+  if(cs>=10){
+    ctx.fillStyle="rgba(0,0,0,0.3)";ctx.font=`${Math.max(6,cs*0.5)}px monospace`;
+    ctx.textAlign="center";
+    for(let j=0;j<Math.min(totalT,30);j++)ctx.fillText(j+1,j*cs+cs/2,cs*0.7);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  PEG PLAN RENDERER
+// ══════════════════════════════════════════════════════════════
+function renderPegPlan(){
+  const canvas=document.getElementById("peg-canvas");
+  const threads=expandSett(S.sett);
+  if(!threads.length)return;
+  const L=threads.length,reps=2,totalT=L*reps;
+  const cs=12,shafts=8,pad=32;
+  const W=totalT*cs+shafts*cs+pad;
+  const H=totalT*cs+shafts*cs+pad;
+  canvas.width=W;canvas.height=H;
+  const ctx=canvas.getContext("2d");
+  const isDark=document.documentElement.getAttribute("data-theme")==="dark";
+  ctx.fillStyle=isDark?"#1a1815":"#f5f3ee";ctx.fillRect(0,0,W,H);
+  const matrix=makeWeaveMatrix(S.weave,totalT);
+  // Compute threading (shaft per column)
+  const colMap=new Map();let sId=0;const threading=[];
+  for(let j=0;j<totalT;j++){
+    const k=matrix.map(r=>r[j]).join("");
+    if(!colMap.has(k))colMap.set(k,sId++%shafts);
+    threading.push(colMap.get(k));
+  }
+  const rowMap=new Map();let tId=0;const treadling=[];
+  for(let i=0;i<totalT;i++){
+    const k=matrix[i].join("");
+    if(!rowMap.has(k))rowMap.set(k,tId++%shafts);
+    treadling.push(rowMap.get(k));
+  }
+  const tuX=pad+totalT*cs+2,tuY=pad;
+  // Tie-up grid
+  for(let t=0;t<shafts;t++)for(let s=0;s<shafts;s++){
+    const x=tuX+s*cs,y=tuY+t*cs;
+    ctx.strokeStyle="rgba(100,80,50,0.15)";ctx.strokeRect(x,y,cs,cs);
+    let filled=false;
+    for(let i=0;i<totalT;i++)for(let j=0;j<totalT;j++)
+      if(treadling[i]===t&&threading[j]===s&&matrix[i][j]===1)filled=true;
+    if(filled){ctx.fillStyle=isDark?"#e8e0d4":"#1c140a";ctx.fillRect(x+1,y+1,cs-2,cs-2);}
+  }
+  // Threading
+  const shaftColors=["#cc2233","#003399","#005522","#996600","#660099","#006666","#cc6600","#444444"];
+  for(let j=0;j<totalT;j++){
+    const s=threading[j],x=pad+j*cs,y=tuY+s*cs;
+    ctx.strokeStyle="rgba(100,80,50,0.12)";ctx.strokeRect(x,y,cs,cs);
+    ctx.fillStyle=threads[j%L];ctx.fillRect(x+1,y+1,cs-2,cs-2);
+    // Shaft indicator dot
+    ctx.fillStyle=shaftColors[s%shaftColors.length];
+    ctx.beginPath();ctx.arc(x+cs/2,y+cs/2,2.5,0,Math.PI*2);ctx.fill();
+  }
+  // Treadling
+  for(let i=0;i<totalT;i++){
+    const t=treadling[i],y=tuY+shafts*cs+4+i*cs,x=tuX+t*cs;
+    ctx.fillStyle=threads[i%L];ctx.fillRect(x+1,y+1,cs-2,cs-2);
+    ctx.strokeStyle="rgba(100,80,50,0.12)";ctx.strokeRect(x,y,cs,cs);
+  }
+  // Drawdown
+  const ddX=pad,ddY=tuY+shafts*cs+4;
+  for(let i=0;i<totalT;i++){
+    for(let j=0;j<totalT;j++){
+      const isUp=matrix[i][j]===1;
+      const col=getCellColor(threads[j%L],threads[i%L],isUp);
+      ctx.fillStyle=toRgbStr(col);
+      ctx.fillRect(ddX+j*cs,ddY+i*cs,cs,cs);
+      ctx.strokeStyle="rgba(0,0,0,0.05)";ctx.strokeRect(ddX+j*cs,ddY+i*cs,cs,cs);
+    }
+  }
+  ctx.fillStyle=isDark?"#8a8070":"#7a7060";ctx.font="bold 7px monospace";ctx.textAlign="center";
+  ctx.fillText("THREADING",pad+totalT*cs/2,tuY-6);
+  ctx.fillText("TIE-UP",tuX+shafts*cs/2,tuY-6);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SETT VISUAL PREVIEW BAR
+// ══════════════════════════════════════════════════════════════
+function renderSettBar(){
+  const el=document.getElementById("sett-vis");
+  const threads=expandSett(S.sett);
+  if(!threads.length){el.innerHTML="";return;}
+  el.innerHTML="";
+  const total=threads.length;
+  threads.forEach(c=>{
+    const seg=document.createElement("div");
+    seg.style.cssText=`flex:1;background:${c};min-width:2px`;
+    el.appendChild(seg);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SETT BUILDER UI
+// ══════════════════════════════════════════════════════════════
+function renderSettUI(){
+  const container=document.getElementById("sett-strips");
+  container.innerHTML="";
+  S.sett.forEach((stripe,idx)=>{
+    const row=document.createElement("div");row.className="sett-row";
+    row.innerHTML=`
+      <div class="sett-color-btn" style="background:${stripe.c}">
+        <input type="color" value="${stripe.c}" data-idx="${idx}">
+      </div>
+      <input type="number" class="sett-count" value="${stripe.n}" min="1" max="32" data-idx="${idx}">
+      <span class="sett-label">${stripe.n} threads</span>
+      <button class="sett-del" data-idx="${idx}">×</button>`;
+    container.appendChild(row);
+    // Color change
+    row.querySelector('input[type="color"]').addEventListener("input",e=>{
+      S.sett[parseInt(e.target.dataset.idx)].c=e.target.value;
+      row.querySelector(".sett-color-btn").style.background=e.target.value;
+      renderSettBar();updateAll();
+    });
+    // Count change
+    row.querySelector('.sett-count').addEventListener("input",e=>{
+      const v=Math.max(1,Math.min(32,parseInt(e.target.value)||1));
+      S.sett[parseInt(e.target.dataset.idx)].n=v;
+      row.querySelector(".sett-label").textContent=`${v} threads`;
+      renderSettBar();updateAll();
+    });
+    // Delete
+    row.querySelector('.sett-del').addEventListener("click",e=>{
+      const i=parseInt(e.target.dataset.idx);
+      if(S.sett.length>1){S.sett.splice(i,1);renderSettUI();renderSettBar();updateAll();}
+    });
+  });
+}
+
+function addStripe(){
+  const colors=["#cc2211","#003399","#005522","#ffcc00","#660099","#ffffff","#111111","#cc6600"];
+  S.sett.push({c:colors[S.sett.length%colors.length],n:4});
+  renderSettUI();renderSettBar();updateAll();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  PRESET THUMBNAILS
+// ══════════════════════════════════════════════════════════════
+function renderPresets(){
+  const el=document.getElementById("preset-list");el.innerHTML="";
+  PRESETS.forEach((p,idx)=>{
+    const item=document.createElement("div");
+    item.className=`preset-item${idx===S.activePreset?" active":""}`;
+    // Generate mini thumbnail
+    const th=document.createElement("canvas");
+    th.width=40;th.height=22;th.className="preset-swatch";
+    const threads=expandSett(p.sett);
+    const L=threads.length,cs=Math.max(2,Math.floor(40/Math.min(L,20)));
+    const totalT=Math.floor(40/cs);
+    const matrix=makeWeaveMatrix("twill22",totalT);
+    const ctx=th.getContext("2d");
+    for(let i=0;i<Math.floor(22/cs);i++)for(let j=0;j<totalT;j++){
+      const isUp=matrix[i%matrix.length][j%matrix[0].length]===1;
+      const col=getCellColor(threads[j%L],threads[i%L],isUp);
+      ctx.fillStyle=toRgbStr(col);ctx.fillRect(j*cs,i*cs,cs,cs);
+    }
+    item.appendChild(th);
+    const info=document.createElement("div");
+    info.innerHTML=`<div class="preset-name">${p.name}</div><div class="preset-meta">${p.meta}</div>`;
+    item.appendChild(info);
+    item.addEventListener("click",()=>{
+      S.sett=JSON.parse(JSON.stringify(p.sett));
+      S.activePreset=idx;
+      renderSettUI();renderSettBar();renderPresets();updateAll();
+      addMsg("ai",`Loaded "${p.name}" — ${expandSett(p.sett).length} threads per repeat.`);
+    });
+    el.appendChild(item);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  MASTER UPDATE
+// ══════════════════════════════════════════════════════════════
+function updateAll(){
+  const threads=expandSett(S.sett);
+  renderFabric();renderDraft();renderPegPlan();
+  document.getElementById("pattern-badge").textContent=
+    `${threads.length}T · ${S.sett.length} colors · ${S.weave.replace("twill22","2/2 twill").replace("twill21","2/1 twill").replace("plain","plain weave").replace("satin5","5-end satin")}`;
+  document.getElementById("s-threads").textContent=`${threads.length} threads`;
+  document.getElementById("s-weave").textContent=S.weave.replace("twill22","2/2 twill");
+  document.getElementById("s-size").textContent=`${S.threadSize}px`;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  THREE.JS 3D DRAPE
+// ══════════════════════════════════════════════════════════════
+let threeState=null;
+function init3D(){
+  const canvas=document.getElementById("three-canvas");
+  const p=canvas.parentElement;
+  const W=Math.max(320,p.clientWidth-32),H=Math.max(320,p.clientHeight-32);
+  canvas.width=W;canvas.height=H;
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+  renderer.setSize(W,H);renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setClearColor(0,0);renderer.shadowMap.enabled=true;
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(42,W/H,0.1,100);
+  camera.position.set(0,0.6,5.5);camera.lookAt(0,0,0);
+  scene.add(new THREE.AmbientLight(0xfff8f0,0.6));
+  const dir=new THREE.DirectionalLight(0xfff8f0,1.4);
+  dir.position.set(3,5,4);dir.castShadow=true;scene.add(dir);
+  scene.add(Object.assign(new THREE.DirectionalLight(0xe0e8ff,0.3),{position:{set:()=>{}}}).clone());
+  const fill=new THREE.DirectionalLight(0xe0e8ff,0.3);fill.position.set(-2,-1,2);scene.add(fill);
+  const geo=new THREE.PlaneGeometry(4,4,80,80);
+  const mat=new THREE.MeshStandardMaterial({roughness:0.88,metalness:0.0,side:THREE.DoubleSide});
+  const mesh=new THREE.Mesh(geo,mat);mesh.receiveShadow=true;scene.add(mesh);
+  threeState={renderer,scene,camera,mesh,mat,geo,running:true,tex:null};
+  (function animate(){
+    if(!threeState.running)return;
+    requestAnimationFrame(animate);
+    const t=Date.now()*0.001;
+    const pos=geo.attributes.position;
+    for(let i=0;i<pos.count;i++){
+      const x=pos.getX(i),y=pos.getY(i);
+      pos.setZ(i,Math.sin(x*1.5+t)*0.06+Math.sin(y*2.1+t*1.1)*0.042+Math.sin(x*0.8-y*1.3+t*0.7)*0.025);
+    }
+    pos.needsUpdate=true;geo.computeVertexNormals();
+    renderer.render(scene,camera);
+  })();
+}
+function update3DTexture(){
+  if(!threeState)return;
+  const src=document.getElementById("fabric-canvas");
+  const pot=document.createElement("canvas");pot.width=512;pot.height=512;
+  pot.getContext("2d").drawImage(src,0,0,512,512);
+  if(threeState.tex){threeState.tex.dispose();}
+  const tex=new THREE.CanvasTexture(pot);
+  tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.repeat.set(1.2,1.2);tex.needsUpdate=true;
+  threeState.renderer.initTexture(tex);
+  threeState.tex=tex;threeState.mat.map=tex;threeState.mat.needsUpdate=true;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  CHAT + NLP
+// ══════════════════════════════════════════════════════════════
+const COLOR_MAP={
+  red:"#cc2211",crimson:"#b22222","dark red":"#8b0000",
+  navy:"#003399","dark blue":"#1a2a5a",blue:"#2255cc","sky blue":"#4499dd",
+  green:"#005522","dark green":"#2a4a1a","forest green":"#228b22","lime":"#66cc00",
+  black:"#111111","dark":"#222222",white:"#ffffff",cream:"#fffdd0",
+  yellow:"#ffcc00","gold":"#cc9900",orange:"#cc6600",
+  purple:"#660099","violet":"#8800cc",pink:"#ee66aa","rose":"#cc3366",
+  grey:"#888888",gray:"#888888","silver":"#c0c0c0",
+  brown:"#663300","tan":"#c8a96e","camel":"#c19a6b",
+  teal:"#006666","cyan":"#0099aa",maroon:"#800000",
+};
+function parseColors(text){
+  const found=[];const t=text.toLowerCase();
+  Object.entries(COLOR_MAP).forEach(([name,hex])=>{if(t.includes(name))found.push(hex);});
+  return found;
+}
+function nlpToSett(text,current){
+  const t=text.toLowerCase();
+  const colors=parseColors(t);
+  let sett=JSON.parse(JSON.stringify(current));
+
+  // Preset detection
+  if(t.includes("royal stewart")||t.includes("stewart"))return{sett:JSON.parse(JSON.stringify(PRESETS[0].sett)),reply:"Royal Stewart loaded!"};
+  if(t.includes("black watch"))return{sett:JSON.parse(JSON.stringify(PRESETS[1].sett)),reply:"Black Watch loaded!"};
+  if(t.includes("burberry"))return{sett:JSON.parse(JSON.stringify(PRESETS[2].sett)),reply:"Burberry check loaded!"};
+  if(t.includes("macgregor"))return{sett:JSON.parse(JSON.stringify(PRESETS[3].sett)),reply:"MacGregor tartan loaded!"};
+
+  // Build sett from colors
+  if(colors.length>=2){
+    const isBold=t.includes("bold")||t.includes("thick")||t.includes("wide");
+    const isFine=t.includes("fine")||t.includes("thin")||t.includes("small");
+    const base=isFine?4:isBold?10:7;
+    const accent=isFine?2:isBold?4:3;
+    sett=[];
+    colors.forEach((c,i)=>{
+      sett.push({c,n:i===0?base*2:i===1?base:accent});
+    });
+    // Add thin black/dark stripe if not already dark
+    const hasDark=colors.some(c=>{const r=hexToRgb(c);return r.r+r.g+r.b<150;});
+    if(!hasDark&&!t.includes("pastel")&&!t.includes("light"))sett.push({c:"#111111",n:2});
+    return{sett,reply:`Built sett from ${colors.length} colors — ${expandSett(sett).length} threads/repeat.`};
+  }
+
+  // Modifier detection
+  if(t.includes("finer")||t.includes("smaller")){sett=sett.map(s=>({...s,n:Math.max(1,Math.round(s.n*0.6))}));return{sett,reply:"Reduced thread count — finer pattern."};}
+  if(t.includes("coarser")||t.includes("bigger")||t.includes("bolder")){sett=sett.map(s=>({...s,n:Math.round(s.n*1.5)}));return{sett,reply:"Increased thread count — bolder pattern."};}
+  if(t.includes("double")){sett=sett.map(s=>({...s,n:s.n*2}));return{sett,reply:"Doubled all stripe widths."};}
+  if(t.includes("invert")||t.includes("reverse")){return{sett:[...sett].reverse(),reply:"Sett order reversed."};}
+
+  return{sett,reply:`I understood "${text.slice(0,40)}". Try adding colors like "red and navy" or preset names.`};
+}
+
+async function sendMsg(text){
+  if(!text.trim())return;
+  addMsg("user",text);
+  document.getElementById("chat-in").value="";
+  document.getElementById("chat-in").style.height="auto";
+  const btn=document.getElementById("btn-send");btn.classList.add("loading");
+  await new Promise(r=>setTimeout(r,220));
+  const{sett,reply}=nlpToSett(text,S.sett);
+  S.sett=sett;S.activePreset=-1;
+  btn.classList.remove("loading");
+  renderSettUI();renderSettBar();renderPresets();updateAll();
+  addMsg("ai",reply,sett);
+}
+function addMsg(role,text,sett){
+  const c=document.getElementById("chat-msgs");
+  const d=document.createElement("div");d.className=`msg ${role}`;
+  const t=new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+  const meta=sett?`<div class="msg-meta">${sett.map(s=>`<span style="display:inline-block;width:8px;height:8px;background:${s.c};border-radius:2px;margin-right:2px;vertical-align:middle"></span>${s.n}`).join(" ")}</div>`:"";
+  d.innerHTML=`<div class="bubble">${text}</div>${meta}<span class="msg-time">${t}</span>`;
+  c.appendChild(d);c.scrollTop=c.scrollHeight;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  IMAGE → DOBBY
+// ══════════════════════════════════════════════════════════════
+function imageToSett(imgEl){
+  const size=16,tc=document.createElement("canvas");tc.width=size;tc.height=1;
+  const ctx=tc.getContext("2d");ctx.drawImage(imgEl,0,0,size,1);
+  const data=ctx.getImageData(0,0,size,1).data;
+  // Sample first row → extract dominant colors → build sett
+  const sampledColors=[];
+  for(let i=0;i<size;i++){
+    const r=data[i*4],g=data[i*4+1],b=data[i*4+2];
+    const hex=`#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;
+    // Cluster nearby colors
+    const exists=sampledColors.find(s=>{
+      const sr=parseInt(s.c.slice(1,3),16),sg=parseInt(s.c.slice(3,5),16),sb=parseInt(s.c.slice(5,7),16);
+      return Math.abs(sr-r)+Math.abs(sg-g)+Math.abs(sb-b)<60;
+    });
+    if(exists)exists.n++;else sampledColors.push({c:hex,n:1});
+  }
+  return sampledColors.filter(s=>s.n>=1).slice(0,8);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  LIBRARY
+// ══════════════════════════════════════════════════════════════
+function saveDesign(){
+  const name=prompt("Design name:",S.sett.slice(0,3).map(s=>s.c).join(" "));
+  if(!name)return;
+  const th=document.createElement("canvas");th.width=60;th.height=60;
+  th.getContext("2d").drawImage(document.getElementById("fabric-canvas"),0,0,60,60);
+  S.library.push({name,sett:JSON.parse(JSON.stringify(S.sett)),thumb:th.toDataURL()});
+  renderLibrary();showToast(`"${name}" saved!`);
+}
+function renderLibrary(){
+  const el=document.getElementById("lib-grid");el.innerHTML="";
+  S.library.forEach((item,idx)=>{
+    const div=document.createElement("div");div.className="lib-item";
+    div.innerHTML=`<img class="lib-thumb" src="${item.thumb}" alt="${item.name}"><div class="lib-name">${item.name}</div>`;
+    div.addEventListener("click",()=>{S.sett=JSON.parse(JSON.stringify(item.sett));renderSettUI();renderSettBar();updateAll();showToast(`Loaded: ${item.name}`);});
+    el.appendChild(div);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  EXPORT
+// ══════════════════════════════════════════════════════════════
+function expPng(){
+  document.getElementById("fabric-canvas").toBlob(blob=>{
+    const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+    a.download=`tartan_${S.sett.length}colors.png`;a.click();showToast("PNG exported!");
+  });
+}
+function expJson(){
+  const blob=new Blob([JSON.stringify({sett:S.sett,weave:S.weave,threadSize:S.threadSize},null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download="tartan.json";a.click();showToast("JSON exported!");
+}
+function expWif(){
+  const threads=expandSett(S.sett);const L=threads.length;
+  const totalT=L*S.repeats;
+  const matrix=makeWeaveMatrix(S.weave,totalT);
+  const colMap=new Map();let sId=0;const threading=[];
+  for(let j=0;j<totalT;j++){const k=matrix.map(r=>r[j]).join("");if(!colMap.has(k))colMap.set(k,sId++%8);threading.push(colMap.get(k));}
+  const rowMap=new Map();let tId=0;const treadling=[];
+  for(let i=0;i<totalT;i++){const k=matrix[i].join("");if(!rowMap.has(k))rowMap.set(k,tId++%8);treadling.push(rowMap.get(k));}
+  const tuMap={};
+  treadling.forEach((tr,i)=>threading.forEach((sh,j)=>{if(matrix[i][j]===1){if(!tuMap[tr])tuMap[tr]=new Set();tuMap[tr].add(sh);}}));
+  const colorEntries=["[COLOR PALETTE]","Entries="+threads.length,"Form=RGB","Unit=Integer"];
+  threads.forEach((h,i)=>{const{r,g,b}=hexToRgb(h);colorEntries.push(`${i+1}=${r},${g},${b}`);});
+  let wif=`[WIF]\nVersion=1.1\nDate=April 2026\nSource Program=Dobby Studio AI\n\n[CONTENTS]\nThreading=true\nTieup=true\nTreadling=true\nWarp=true\nWeft=true\nColor Palette=true\n\n`;
+  wif+=colorEntries.join("\n")+"\n\n";
+  wif+=`[WARP]\nThreads=${totalT}\nSpacing=0.5\nThickness=0.5\n\n`;
+  wif+=`[WEFT]\nThreads=${totalT}\nSpacing=0.5\nThickness=0.5\n\n`;
+  wif+=`[COLOR TABLE]\n`+threads.map((h,i)=>{const{r,g,b}=hexToRgb(h);return`${i+1}=${r},${g},${b}`;}).join("\n")+"\n\n";
+  wif+=`[THREADING]\n`+threading.map((s,j)=>`${j+1}=${s+1}`).join("\n")+"\n\n";
+  wif+=`[TREADLING]\n`+treadling.map((t,i)=>`${i+1}=${t+1}`).join("\n")+"\n\n";
+  wif+=`[TIEUP]\n`+Object.entries(tuMap).map(([t,shafts])=>`${parseInt(t)+1}=${[...shafts].map(x=>x+1).join(",")}`).join("\n")+"\n";
+  const blob=new Blob([wif],{type:"text/plain"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download="tartan.wif";a.click();showToast("WIF file ready for loom software!");
+}
+
+function showToast(msg){
+  const t=document.getElementById("toast");t.textContent=msg;
+  t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2400);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════════════════════════
+document.addEventListener("DOMContentLoaded",()=>{
+  S.fiberCanvas=buildFiberCanvas();
+  renderSettUI();renderSettBar();renderPresets();
+  updateAll();
+  init3D();
+
+  // Theme
+  document.getElementById("theme-btn").addEventListener("click",()=>{
+    const d=document.documentElement;const cur=d.getAttribute("data-theme");
+    d.setAttribute("data-theme",cur==="dark"?"light":"dark");
+    renderPresets();updateAll();
+  });
+
+  // Viz tabs
+  document.querySelectorAll(".viz-tab").forEach(tab=>{
+    tab.addEventListener("click",()=>{
+      S.activePanel=tab.dataset.panel;
+      document.querySelectorAll(".viz-tab").forEach(t=>t.classList.remove("active"));
+      document.querySelectorAll(".viz-panel").forEach(p=>p.classList.remove("active"));
+      tab.classList.add("active");
+      document.getElementById(`panel-${tab.dataset.panel}`).classList.add("active");
+      if(tab.dataset.panel==="three")setTimeout(update3DTexture,60);
+    });
+  });
+
+  // Zoom
+  document.getElementById("zoom-in").addEventListener("click",()=>{S.threadSize=Math.min(20,S.threadSize+1);document.getElementById("s-size").textContent=S.threadSize+"px";updateAll();});
+  document.getElementById("zoom-out").addEventListener("click",()=>{S.threadSize=Math.max(4,S.threadSize-1);document.getElementById("s-size").textContent=S.threadSize+"px";updateAll();});
+
+  // Weave
+  document.getElementById("weave-sel").addEventListener("change",e=>{S.weave=e.target.value;updateAll();});
+
+  // Thread size slider
+  document.getElementById("size-slider").addEventListener("input",e=>{
+    S.threadSize=parseInt(e.target.value);document.getElementById("size-val").textContent=S.threadSize+"px";updateAll();
+  });
+
+  // Repeats slider
+  document.getElementById("rep-slider").addEventListener("input",e=>{
+    S.repeats=parseInt(e.target.value);document.getElementById("rep-val").textContent=S.repeats+"×";updateAll();
+  });
+
+  // Add stripe
+  document.getElementById("btn-add").addEventListener("click",addStripe);
+
+  // Chat
+  const inp=document.getElementById("chat-in");
+  document.getElementById("btn-send").addEventListener("click",()=>sendMsg(inp.value));
+  inp.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMsg(inp.value);}});
+  inp.addEventListener("input",()=>{inp.style.height="auto";inp.style.height=Math.min(inp.scrollHeight,64)+"px";});
+  document.querySelectorAll(".chip").forEach(c=>c.addEventListener("click",()=>sendMsg(c.textContent)));
+
+  // Image upload
+  const zone=document.getElementById("upload-zone"),fi=document.getElementById("img-input");
+  zone.addEventListener("click",e=>{if(e.target!==fi)fi.click();});
+  fi.addEventListener("change",e=>{
+    const file=e.target.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      const img=new Image();
+      img.onload=()=>{
+        document.getElementById("upload-prev").src=ev.target.result;
+        document.getElementById("upload-prev").style.display="block";
+        const sett=imageToSett(img);
+        if(sett.length>=2){S.sett=sett;renderSettUI();renderSettBar();updateAll();addMsg("ai",`Image → sett with ${sett.length} colors extracted ✓`,sett);}
+        else addMsg("ai","Could not extract enough colors — try a more colorful image.");
+      };img.src=ev.target.result;
+    };reader.readAsDataURL(file);
+  });
+  zone.addEventListener("dragover",e=>{e.preventDefault();zone.classList.add("drag");});
+  zone.addEventListener("dragleave",()=>zone.classList.remove("drag"));
+  zone.addEventListener("drop",e=>{e.preventDefault();zone.classList.remove("drag");const f=e.dataTransfer.files[0];if(f)fi.dispatchEvent(Object.assign(new Event("change"),{target:{files:[f]}}));});
+
+  // Exports
+  document.getElementById("exp-png").addEventListener("click",expPng);
+  document.getElementById("exp-json").addEventListener("click",expJson);
+  document.getElementById("exp-wif").addEventListener("click",expWif);
+  document.getElementById("btn-save").addEventListener("click",saveDesign);
+});
+</script>
+</body>
+</html>
