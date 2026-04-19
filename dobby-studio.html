@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="groq-key" content="">
 <title>Dobby Studio — Tartan & Fabric Designer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -201,8 +202,8 @@ canvas.fabric-canvas{border-radius:var(--r-lg);box-shadow:var(--shadow-lg);image
 .btn-send.loading{animation:pulse 0.8s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
-.export-row{padding:8px 12px;border-top:1px solid var(--border);display:flex;gap:4px;flex-shrink:0}
-.btn-exp{flex:1;padding:6px;border-radius:var(--r-sm);font-size:10px;font-weight:500;
+.export-row{padding:8px 12px;border-top:1px solid var(--border);display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap}
+.btn-exp{flex:1;min-width:70px;padding:6px;border-radius:var(--r-sm);font-size:10px;font-weight:500;
   border:1px solid var(--border);background:var(--surface-off);color:var(--text-muted);transition:all var(--trans)}
 .btn-exp:hover{background:var(--surface-2);color:var(--text)}
 .btn-exp.primary{background:var(--text);color:var(--bg);border-color:var(--text)}
@@ -216,6 +217,16 @@ canvas.fabric-canvas{border-radius:var(--r-lg);box-shadow:var(--shadow-lg);image
 
 /* sett preview bar in sidebar */
 .sett-vis{height:18px;width:100%;border-radius:3px;overflow:hidden;display:flex;margin-top:4px;border:1px solid var(--border)}
+
+/* sett notation input */
+#sett-notation-input{width:100%;padding:4px 7px;border:1px solid var(--border);
+  border-radius:var(--r-sm);background:var(--surface-2);font-size:11px;font-family:monospace;
+  color:var(--text);margin-bottom:6px}
+#sett-notation-input:focus{outline:none;border-color:var(--accent)}
+#sett-notation-input::placeholder{color:var(--text-faint)}
+
+#phys-size{margin-top:8px;padding:7px;background:var(--surface-off);border-radius:var(--r-sm);
+  font-size:10px;color:var(--text-muted);line-height:1.8}
 </style>
 </head>
 <body>
@@ -250,6 +261,14 @@ canvas.fabric-canvas{border-radius:var(--r-lg);box-shadow:var(--shadow-lg);image
     <div class="sec-title">Sett Builder</div>
     <div class="sett-vis" id="sett-vis"></div>
     <div style="height:8px"></div>
+    <div style="margin-bottom:6px">
+      <div class="ctrl-label" style="margin-bottom:3px">Sett Notation</div>
+      <input type="text" id="sett-notation-input"
+        placeholder="R/6 K/2 G/4 B/6"
+        style="width:100%;padding:4px 7px;border:1px solid var(--border);
+               border-radius:var(--r-sm);background:var(--surface-2);
+               font-size:11px;font-family:monospace;color:var(--text)">
+    </div>
     <div class="sett-strips" id="sett-strips"></div>
     <button class="btn-add-stripe" id="btn-add">＋ Add Color Stripe</button>
   </div>
@@ -285,6 +304,25 @@ canvas.fabric-canvas{border-radius:var(--r-lg);box-shadow:var(--shadow-lg);image
         <input type="range" class="ctrl-slider" id="rep-slider" min="1" max="6" value="3">
         <span class="ctrl-val" id="rep-val">3×</span>
       </div>
+    </div>
+  </div>
+
+  <!-- PRODUCTION SPECS -->
+  <div class="sec">
+    <div class="sec-title">Production Specs</div>
+    <div class="ctrl-row">
+      <span class="ctrl-label">EPI (ends/inch)</span>
+      <input type="number" id="epi-input" class="sett-count"
+             style="width:54px" min="10" max="200" value="50">
+    </div>
+    <div class="ctrl-row" style="margin-top:5px">
+      <span class="ctrl-label">PPI (picks/inch)</span>
+      <input type="number" id="ppi-input" class="sett-count"
+             style="width:54px" min="10" max="200" value="48">
+    </div>
+    <div id="phys-size" style="margin-top:8px;padding:7px;
+      background:var(--surface-off);border-radius:var(--r-sm);
+      font-size:10px;color:var(--text-muted);line-height:1.8">
     </div>
   </div>
 
@@ -364,6 +402,7 @@ canvas.fabric-canvas{border-radius:var(--r-lg);box-shadow:var(--shadow-lg);image
   <div class="export-row">
     <button class="btn-exp" id="exp-png">⬇ PNG</button>
     <button class="btn-exp" id="exp-json">⬇ JSON</button>
+    <button class="btn-exp" id="exp-spec">⬇ Spec</button>
     <button class="btn-exp primary" id="exp-wif">⬇ WIF</button>
   </div>
 </div>
@@ -414,6 +453,9 @@ let S = {
   library: [],
   activePreset: 0,
   fiberCanvas: null,
+  epi: 50,
+  ppi: 48,
+  lastPresetName: "Royal Stewart",
 };
 
 // ══════════════════════════════════════════════════════════════
@@ -433,12 +475,64 @@ function lightenRgb(c,a){return{r:Math.min(255,c.r+a),g:Math.min(255,c.g+a),b:Ma
 function darkenRgb(c,a){return{r:Math.max(0,c.r-a),g:Math.max(0,c.g-a),b:Math.max(0,c.b-a)};}
 
 // ══════════════════════════════════════════════════════════════
-//  SETT → FLAT THREAD COLOR ARRAY
+//  COLOR CODES FOR NOTATION
+// ══════════════════════════════════════════════════════════════
+const COLOR_CODES = {
+  '#cc1122':'R','#c8a96e':'T','#111111':'K','#1a1a1a':'K',
+  '#006633':'G','#2a4a1a':'G','#005522':'G','#003366':'N',
+  '#1a2a5a':'N','#ffffff':'W','#ffcc00':'Y','#c0392b':'R',
+  '#e8a0a0':'P','#a0c0e8':'B','#a0e8b0':'G','#e8e0a0':'Y',
+  '#c0a0e8':'V','#cc2211':'R','#003399':'B','#5a3a1a':'T',
+  '#8a8a5a':'O',
+};
+const CODE_COLORS = {
+  'R':'#cc1122','K':'#111111','G':'#006633','B':'#003399',
+  'W':'#ffffff','Y':'#ffcc00','N':'#1a2a5a','T':'#c8a96e',
+  'P':'#e8a0a0','V':'#c0a0e8','O':'#8a8a5a',
+};
+
+function toSettNotation(sett){
+  return sett.map(s=>{
+    const code = COLOR_CODES[s.c.toLowerCase()] ||
+      s.c.slice(1,2).toUpperCase();
+    return code+'/'+s.n;
+  }).join(' ');
+}
+
+function parseSettNotation(text){
+  const tokens=text.trim().toUpperCase().split(/[\s,]+/);
+  const result=[];
+  for(const t of tokens){
+    const m=t.match(/^([A-Z]+)[:\\/](\d+)$/);
+    if(m){
+      const c=CODE_COLORS[m[1]] || '#888888';
+      result.push({c, n:parseInt(m[2])});
+    }
+  }
+  return result.length ? result : null;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SETT → FLAT THREAD COLOR ARRAY (WITH REFLECTIVE REPEAT)
 // ══════════════════════════════════════════════════════════════
 function expandSett(sett){
-  const arr=[];
-  sett.forEach(s=>{for(let i=0;i<s.n;i++)arr.push(s.c);});
-  return arr;
+  const fwd=[];
+  sett.forEach(s=>{for(let i=0;i<s.n;i++)fwd.push(s.c);});
+  if(fwd.length<=1)return fwd;
+  // mirror: reverse, drop first and last to avoid doubling pivot points
+  const mirror=[...fwd].reverse().slice(1,fwd.length-1);
+  return [...fwd,...mirror];
+}
+
+// ══════════════════════════════════════════════════════════════
+//  WEAVE MATRIX CACHE
+// ══════════════════════════════════════════════════════════════
+const _matrixCache = {};
+function getCachedMatrix(weave, size){
+  const key = weave + '_' + size;
+  if(!_matrixCache[key])
+    _matrixCache[key] = makeWeaveMatrix(weave, size);
+  return _matrixCache[key];
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -489,6 +583,20 @@ function buildFiberCanvas(){
 }
 
 // ══════════════════════════════════════════════════════════════
+//  PHYSICAL SIZE CALCULATOR
+// ══════════════════════════════════════════════════════════════
+function updatePhysSize(){
+  const total = expandSett(S.sett).length * S.repeats;
+  const wCm = ((total / S.epi) * 2.54).toFixed(2);
+  const hCm = ((total / S.ppi) * 2.54).toFixed(2);
+  const endsFor150 = Math.round(150 / parseFloat(wCm) * total);
+  document.getElementById("phys-size").innerHTML =
+    `Repeat width: <b>${wCm} cm</b><br>` +
+    `Repeat height: <b>${hCm} cm</b><br>` +
+    `150cm width → <b>${endsFor150} warp ends</b>`;
+}
+
+// ══════════════════════════════════════════════════════════════
 //  MASTER RENDER: PHOTOREALISTIC TARTAN FABRIC
 //  Pipeline: optical mix → twill stroke → fiber noise → vignette
 // ══════════════════════════════════════════════════════════════
@@ -503,7 +611,7 @@ function renderFabric(){
   const W=totalT*ts, H=totalT*ts;
   canvas.width=W;canvas.height=H;
   const ctx=canvas.getContext("2d");
-  const matrix=makeWeaveMatrix(S.weave,totalT);
+  const matrix=getCachedMatrix(S.weave,totalT);
 
   // ── PASS 1: Fill each cell with optical-mix color ──────────────
   for(let i=0;i<totalT;i++){
@@ -602,7 +710,7 @@ function renderDraft(){
   const totalT=L*reps,cs=Math.max(6,S.threadSize);
   canvas.width=totalT*cs;canvas.height=totalT*cs;
   const ctx=canvas.getContext("2d");
-  const matrix=makeWeaveMatrix(S.weave,totalT);
+  const matrix=getCachedMatrix(S.weave,totalT);
   for(let i=0;i<totalT;i++){
     for(let j=0;j<totalT;j++){
       const isUp=matrix[i][j]===1;
@@ -635,7 +743,7 @@ function renderPegPlan(){
   const ctx=canvas.getContext("2d");
   const isDark=document.documentElement.getAttribute("data-theme")==="dark";
   ctx.fillStyle=isDark?"#1a1815":"#f5f3ee";ctx.fillRect(0,0,W,H);
-  const matrix=makeWeaveMatrix(S.weave,totalT);
+  const matrix=getCachedMatrix(S.weave,totalT);
   // Compute threading (shaft per column)
   const colMap=new Map();let sId=0;const threading=[];
   for(let j=0;j<totalT;j++){
@@ -711,6 +819,8 @@ function renderSettBar(){
 //  SETT BUILDER UI
 // ══════════════════════════════════════════════════════════════
 function renderSettUI(){
+  document.getElementById("sett-notation-input").value =
+    toSettNotation(S.sett);
   const container=document.getElementById("sett-strips");
   container.innerHTML="";
   S.sett.forEach((stripe,idx)=>{
@@ -764,7 +874,7 @@ function renderPresets(){
     const threads=expandSett(p.sett);
     const L=threads.length,cs=Math.max(2,Math.floor(40/Math.min(L,20)));
     const totalT=Math.floor(40/cs);
-    const matrix=makeWeaveMatrix("twill22",totalT);
+    const matrix=getCachedMatrix("twill22",totalT);
     const ctx=th.getContext("2d");
     for(let i=0;i<Math.floor(22/cs);i++)for(let j=0;j<totalT;j++){
       const isUp=matrix[i%matrix.length][j%matrix[0].length]===1;
@@ -778,6 +888,7 @@ function renderPresets(){
     item.addEventListener("click",()=>{
       S.sett=JSON.parse(JSON.stringify(p.sett));
       S.activePreset=idx;
+      S.lastPresetName=p.name;
       renderSettUI();renderSettBar();renderPresets();updateAll();
       addMsg("ai",`Loaded "${p.name}" — ${expandSett(p.sett).length} threads per repeat.`);
     });
@@ -790,7 +901,7 @@ function renderPresets(){
 // ══════════════════════════════════════════════════════════════
 function updateAll(){
   const threads=expandSett(S.sett);
-  renderFabric();renderDraft();renderPegPlan();
+  renderFabric();renderDraft();renderPegPlan();updatePhysSize();
   document.getElementById("pattern-badge").textContent=
     `${threads.length}T · ${S.sett.length} colors · ${S.weave.replace("twill22","2/2 twill").replace("twill21","2/1 twill").replace("plain","plain weave").replace("satin5","5-end satin")}`;
   document.getElementById("s-threads").textContent=`${threads.length} threads`;
@@ -859,7 +970,7 @@ const COLOR_MAP={
   purple:"#660099","violet":"#8800cc",pink:"#ee66aa","rose":"#cc3366",
   grey:"#888888",gray:"#888888","silver":"#c0c0c0",
   brown:"#663300","tan":"#c8a96e","camel":"#c19a6b",
-  teal:"#006666","cyan":"#0099aa",maroon:"#800000",
+  teal:"#006666",cyan:"#0099aa",maroon:"#800000",
 };
 function parseColors(text){
   const found=[];const t=text.toLowerCase();
@@ -907,14 +1018,85 @@ async function sendMsg(text){
   addMsg("user",text);
   document.getElementById("chat-in").value="";
   document.getElementById("chat-in").style.height="auto";
-  const btn=document.getElementById("btn-send");btn.classList.add("loading");
+  const btn=document.getElementById("btn-send");
+  btn.classList.add("loading");
   await new Promise(r=>setTimeout(r,220));
-  const{sett,reply}=nlpToSett(text,S.sett);
-  S.sett=sett;S.activePreset=-1;
+
+  const notation  = toSettNotation(S.sett);
+  const total     = expandSett(S.sett).length * S.repeats;
+  const wCm       = ((total/(S.epi||50))*2.54).toFixed(2);
+  const hCm       = ((total/(S.ppi||48))*2.54).toFixed(2);
+  const weaveLabel= {twill22:'2/2 Twill',twill21:'2/1 Twill',
+                     plain:'Plain Weave',satin5:'5-End Satin'}[S.weave];
+
+  const systemCtx = `You are a textile design assistant for Dobby Studio.
+Current fabric on canvas:
+- Sett notation: ${notation}
+- Weave structure: ${weaveLabel}
+- Thread repeat: ${total} threads
+- EPI: ${S.epi||50}, PPI: ${S.ppi||48}
+- Physical repeat: ${wCm}cm × ${hCm}cm
+- Last loaded preset: ${S.lastPresetName||'None'}
+
+The user wants to modify this fabric.
+Respond with valid JSON only — no markdown, no explanation.
+Return ONLY the fields that need to change from:
+{ "sett": [{c:"#hex", n:number}, ...], "weave": "twill22|twill21|plain|satin5", "threadSize": number }
+If you cannot determine a change, return {"error":"message"}.`;
+
+  const GROQ_KEY = window.__GROQ_KEY ||
+    document.querySelector('meta[name="groq-key"]')?.getAttribute('content') ||
+    (typeof VITE_GROQ_API_KEY !== 'undefined' ? VITE_GROQ_API_KEY : '');
+
+  let sett = S.sett, reply = '';
+
+  if(GROQ_KEY){
+    try{
+      const res = await fetch(
+        'https://api.groq.com/openai/v1/chat/completions',{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'Authorization':'Bearer '+GROQ_KEY
+        },
+        body:JSON.stringify({
+          model:'llama-3.3-70b-versatile',
+          temperature:0.4,
+          max_tokens:400,
+          messages:[
+            {role:'system', content:systemCtx},
+            {role:'user',   content:text}
+          ]
+        })
+      });
+      const data = await res.json();
+      if(data.error){throw new Error(data.error.message);}
+      const raw  = data.choices?.[0]?.message?.content||'';
+      const json = JSON.parse(raw.replace(/```json|```/g,'').trim());
+      if(json.error){throw new Error(json.error);}
+      if(json.sett)  sett        = json.sett;
+      if(json.weave) S.weave     = json.weave;
+      if(json.threadSize) S.threadSize = json.threadSize;
+      reply = `✦ Applied: ${toSettNotation(sett)}`;
+    } catch(e){
+      // fallback to local NLP
+      const r = nlpToSett(text, S.sett);
+      sett  = r.sett;
+      reply = r.reply + ' (local mode)';
+    }
+  } else {
+    // No API key — use local NLP
+    const r = nlpToSett(text, S.sett);
+    sett  = r.sett;
+    reply = r.reply;
+  }
+
+  S.sett = sett; S.activePreset = -1;
   btn.classList.remove("loading");
-  renderSettUI();renderSettBar();renderPresets();updateAll();
-  addMsg("ai",reply,sett);
+  renderSettUI(); renderSettBar(); renderPresets(); updateAll();
+  addMsg("ai", reply, sett);
 }
+
 function addMsg(role,text,sett){
   const c=document.getElementById("chat-msgs");
   const d=document.createElement("div");d.className=`msg ${role}`;
@@ -977,14 +1159,78 @@ function expPng(){
   });
 }
 function expJson(){
-  const blob=new Blob([JSON.stringify({sett:S.sett,weave:S.weave,threadSize:S.threadSize},null,2)],{type:"application/json"});
+  const blob=new Blob([JSON.stringify({sett:S.sett,weave:S.weave,threadSize:S.threadSize,epi:S.epi,ppi:S.ppi},null,2)],{type:"application/json"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);
   a.download="tartan.json";a.click();showToast("JSON exported!");
+}
+function expSpec(){
+  const total = expandSett(S.sett).length * S.repeats;
+  const wCm  = ((total / S.epi) * 2.54).toFixed(2);
+  const hCm  = ((total / S.ppi) * 2.54).toFixed(2);
+  const ends = Math.round(150 / parseFloat(wCm) * total);
+  const notation = toSettNotation(S.sett);
+  const weaveLabel = {
+    twill22:'2/2 Twill', twill21:'2/1 Twill',
+    plain:'Plain Weave', satin5:'5-End Satin'
+  }[S.weave] || S.weave;
+  const swatches = S.sett.map(s=>
+    `<span style="display:inline-flex;align-items:center;gap:6px;
+      margin:3px 8px 3px 0">
+      <span style="width:20px;height:20px;border-radius:3px;
+        background:${s.c};border:1px solid #ccc;display:inline-block">
+      </span>
+      <span style="font-family:monospace;font-size:12px">
+        ${s.c} &times;${s.n}
+      </span>
+    </span>`
+  ).join('');
+  const w = window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head>
+    <title>Dobby Studio — Spec Sheet</title>
+    <style>
+      body{font-family:'Helvetica Neue',sans-serif;max-width:700px;
+           margin:40px auto;padding:0 20px;color:#1a1a1a;font-size:13px}
+      h1{font-size:22px;margin-bottom:4px}
+      .sub{color:#888;font-size:12px;margin-bottom:28px}
+      table{width:100%;border-collapse:collapse;margin:20px 0}
+      td{padding:8px 12px;border-bottom:1px solid #eee}
+      td:first-child{color:#888;width:200px;font-size:11px;
+                     text-transform:uppercase;letter-spacing:.5px}
+      td:last-child{font-weight:500}
+      .swatches{margin-top:20px}
+      .swatches h3{font-size:11px;text-transform:uppercase;
+                   letter-spacing:.5px;color:#888;margin-bottom:8px}
+      @media print{body{margin:20px}}
+    </style>
+  </head><body>
+    <h1>Fabric Specification Sheet</h1>
+    <div class="sub">Generated by Dobby Studio AI</div>
+    <table>
+      <tr><td>Sett Notation</td>
+          <td style="font-family:monospace">${notation}</td></tr>
+      <tr><td>Weave Structure</td><td>${weaveLabel}</td></tr>
+      <tr><td>Thread Repeat</td><td>${total} threads</td></tr>
+      <tr><td>EPI / PPI</td>
+          <td>${S.epi} ends/inch / ${S.ppi} picks/inch</td></tr>
+      <tr><td>Repeat Width</td><td>${wCm} cm</td></tr>
+      <tr><td>Repeat Height</td><td>${hCm} cm</td></tr>
+      <tr><td>Warp Ends (150cm)</td>
+          <td>${ends} ends</td></tr>
+      <tr><td>Color Count</td><td>${S.sett.length} colors</td></tr>
+    </table>
+    <div class="swatches">
+      <h3>Color Palette</h3>
+      ${swatches}
+    </div>
+  </body></html>`);
+  w.document.close();
+  w.focus();
+  setTimeout(()=>w.print(), 400);
 }
 function expWif(){
   const threads=expandSett(S.sett);const L=threads.length;
   const totalT=L*S.repeats;
-  const matrix=makeWeaveMatrix(S.weave,totalT);
+  const matrix=getCachedMatrix(S.weave,totalT);
   const colMap=new Map();let sId=0;const threading=[];
   for(let j=0;j<totalT;j++){const k=matrix.map(r=>r[j]).join("");if(!colMap.has(k))colMap.set(k,sId++%8);threading.push(colMap.get(k));}
   const rowMap=new Map();let tId=0;const treadling=[];
@@ -1056,6 +1302,28 @@ document.addEventListener("DOMContentLoaded",()=>{
     S.repeats=parseInt(e.target.value);document.getElementById("rep-val").textContent=S.repeats+"×";updateAll();
   });
 
+  // EPI/PPI
+  document.getElementById("epi-input").addEventListener("change", e=>{
+    S.epi=+e.target.value;updatePhysSize();
+  });
+  document.getElementById("ppi-input").addEventListener("change", e=>{
+    S.ppi=+e.target.value;updatePhysSize();
+  });
+
+  // Sett notation
+  document.getElementById("sett-notation-input").addEventListener("keydown", e=>{
+    if(e.key==="Enter"){
+      const parsed=parseSettNotation(e.target.value);
+      if(parsed){
+        S.sett=parsed; S.activePreset=-1;
+        renderSettUI();renderSettBar();renderPresets();updateAll();
+        showToast("Sett applied from notation!");
+      } else {
+        showToast("Could not parse notation. Use format: R/6 K/2 G/4");
+      }
+    }
+  });
+
   // Add stripe
   document.getElementById("btn-add").addEventListener("click",addStripe);
 
@@ -1090,6 +1358,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   // Exports
   document.getElementById("exp-png").addEventListener("click",expPng);
   document.getElementById("exp-json").addEventListener("click",expJson);
+  document.getElementById("exp-spec").addEventListener("click",expSpec);
   document.getElementById("exp-wif").addEventListener("click",expWif);
   document.getElementById("btn-save").addEventListener("click",saveDesign);
 });
