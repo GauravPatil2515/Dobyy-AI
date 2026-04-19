@@ -1,4 +1,6 @@
 import SettBuilder from './SettBuilder.jsx'
+import RegistrySearch from './RegistrySearch.jsx'
+import Gallery from './Gallery.jsx'
 import { PRESETS } from '../data/presets.js'
 
 const WEAVES = [
@@ -8,10 +10,21 @@ const WEAVES = [
   { v:'satin5',  l:'5-End Satin' },
 ]
 
-export default function Sidebar({ state, dispatch, className = '' }) {
+export default function Sidebar({
+  state, dispatch, className='',
+  gallery, galleryActiveId, onSave, onLoad, onRemove, onRename
+}) {
   return (
     <aside className={`sidebar ${className}`}>
       <SettBuilder sett={state.sett} dispatch={dispatch}/>
+      <Gallery
+        gallery={gallery}
+        activeId={galleryActiveId}
+        onSave={onSave}
+        onLoad={onLoad}
+        onRemove={onRemove}
+        onRename={onRename}/>
+      <RegistrySearch dispatch={dispatch}/>
 
       <div className="section">
         <div className="section-title">Presets</div>

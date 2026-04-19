@@ -1,8 +1,15 @@
 import { useRef, useState } from 'react'
 import { useFabricRenderer } from '../hooks/useFabricRenderer.js'
 import { copyShareLink } from '../utils/shareUtils.js'
+import DrapeView from './DrapeView.jsx'
 
-const PANELS = ['fabric', 'draft', 'peg']
+const PANELS = ['fabric', 'draft', 'peg', 'drape']
+const PANEL_LABELS = {
+  fabric: 'Fabric',
+  draft:  'Draft',
+  peg:    'Peg',
+  drape:  '3D Drape'
+}
 const WEAVE_LABELS = {
   twill22:'2/2 twill', twill21:'2/1 twill',
   plain:'plain weave', satin5:'5-end satin'
@@ -194,7 +201,7 @@ export default function FabricCanvas({ state, dispatch }) {
               key={p}
               className={`vtab${state.panel===p?' active':''}`}
               onClick={() => dispatch({type:'SET_PANEL', panel:p})}>
-              {p.charAt(0).toUpperCase() + p.slice(1)}
+              {PANEL_LABELS[p]}
             </button>
           ))}
         </div>
@@ -228,6 +235,9 @@ export default function FabricCanvas({ state, dispatch }) {
         )}
         {state.panel === 'peg' && (
           <PegPlan state={state}/>
+        )}
+        {state.panel === 'drape' && (
+          <DrapeView state={state}/>
         )}
       </div>
 

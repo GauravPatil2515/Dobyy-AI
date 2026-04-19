@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useFabricState } from './hooks/useFabricState.js'
+import { useGallery } from './hooks/useGallery.js'
 import { decodeState } from './utils/shareUtils.js'
 import Header       from './components/Header.jsx'
 import Sidebar      from './components/Sidebar.jsx'
@@ -17,6 +18,8 @@ export default function App() {
     state, dispatch, processPrompt, loading,
     undo, redo, canUndo, canRedo
   } = useFabricState()
+
+  const { gallery, activeId: galleryActiveId, save, load, remove, rename } = useGallery(state, dispatch)
 
   useEffect(() => {
     document.documentElement.dataset.theme = state.theme
@@ -60,7 +63,13 @@ export default function App() {
         <div className="main">
           <Sidebar
             state={state} dispatch={dispatch}
-            className={sidebarOpen ? 'open' : ''}/>
+            className={sidebarOpen ? 'open' : ''}
+            gallery={gallery}
+            galleryActiveId={galleryActiveId}
+            onSave={save}
+            onLoad={load}
+            onRemove={remove}
+            onRename={rename}/>
           <FabricCanvas state={state} dispatch={dispatch}/>
           <ChatPanel
             state={state}
