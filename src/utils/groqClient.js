@@ -57,9 +57,12 @@ export async function askGroq(messages, currentState) {
     ...messages
   ]
 
-  const res = await fetch('/api/groq/openai/v1/chat/completions', {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`
+    },
     body: JSON.stringify({
       model: 'llama-3.3-70b-versatile',
       messages: apiMessages,
