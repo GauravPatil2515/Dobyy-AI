@@ -2,6 +2,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "env": {
-    "VITE_GROQ_API_KEY": "@groq_api_key"
+    "VITE_GROQ_API_KEY": "@GROQ_API_KEY"
   }
 }
