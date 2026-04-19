@@ -11,10 +11,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const apiKey = process.env.VITE_GROQ_API_KEY;
+  // Check both naming conventions
+  const apiKey = process.env.GROQ_API_KEY || process.env.VITE_GROQ_API_KEY;
 
   if (!apiKey) {
-    console.error('Missing VITE_GROQ_API_KEY environment variable');
+    console.error('Missing GROQ_API_KEY or VITE_GROQ_API_KEY environment variable');
     return res.status(500).json({ error: 'API key not configured' });
   }
 
