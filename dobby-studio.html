@@ -163,15 +163,51 @@ canvas.fabric-canvas{border-radius:var(--r-lg);box-shadow:var(--shadow-lg);image
 .chat-sub{font-size:9px;color:var(--text-faint);margin-top:1px}
 
 /* upload */
-.upload-zone{margin:8px 12px;border:1.5px dashed var(--border);border-radius:var(--r-lg);
-  padding:10px;text-align:center;cursor:pointer;transition:all var(--trans);background:var(--bg);flex-shrink:0;
-  position:relative;overflow:hidden;min-height:80px;display:flex;align-items:center;justify-content:center;flex-direction:column}
-.upload-zone:hover{border-color:var(--accent);background:var(--accent-light)}
-.upload-zone.drag-over{border-color:var(--accent);background:var(--accent-light);transform:scale(1.02)}
-.upload-zone input{display:none}
-.upload-txt{font-size:10px;color:var(--text-muted);line-height:1.4}
-.upload-txt strong{color:var(--text)}
-.upload-preview{width:100%;margin-top:5px;border-radius:var(--r-sm);display:none;max-height:60px;object-fit:cover;border:1px solid var(--border)}
+.upload-zone{
+  margin: 10px 12px;
+  border: 1.5px dashed var(--accent);
+  border-radius: var(--r-lg);
+  padding: 14px 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--trans);
+  background: var(--accent-light);
+  flex-shrink: 0;
+  display: block;
+  position: relative;
+  min-height: 64px;
+}
+.upload-zone::before {
+  content: "📸 Image → Design";
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 4px;
+  letter-spacing: 0.5px;
+}
+.upload-zone:hover,
+.upload-zone.drag {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  transform: scale(1.01);
+}
+.upload-zone input { display: none; }
+.upload-txt {
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+.upload-txt strong { color: var(--text); }
+.upload-preview {
+  width: 100%;
+  margin-top: 6px;
+  border-radius: var(--r-sm);
+  display: none;
+  max-height: 80px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+}
 
 .chat-msgs{flex:1;overflow-y:auto;padding:9px 12px;display:flex;flex-direction:column;gap:7px}
 .msg{display:flex;flex-direction:column;gap:2px;animation:msgIn .18s ease}
@@ -371,10 +407,14 @@ canvas.fabric-canvas{border-radius:var(--r-lg);box-shadow:var(--shadow-lg);image
     <div class="chat-title">Design Assistant</div>
     <div class="chat-sub">Natural language → tartan pattern</div>
   </div>
+  <div class="sec-title" style="padding: 10px 12px 4px; font-size:9px;
+    font-weight:600; letter-spacing:1.3px; text-transform:uppercase;
+    color:var(--text-faint);">
+    Image → Design
+  </div>
   <div class="upload-zone" id="upload-zone">
     <input type="file" id="img-input" accept="image/*">
-    <div style="font-size:18px;margin-bottom:2px">🖼</div>
-    <div class="upload-txt"><strong>Drop image</strong> to convert → dobby grid</div>
+    <div class="upload-txt"><strong>Drop image</strong> or click to convert → dobby grid</div>
     <img id="upload-prev" class="upload-preview" alt="preview">
   </div>
   <div class="chat-msgs" id="chat-msgs">
@@ -1252,200 +1292,100 @@ function addMsg(role,text,sett){
   c.appendChild(d);c.scrollTop=c.scrollHeight;
 }
 
-// ══════════════════════════════════════════════════════════════
-//  IMAGE → DOBBY (GROQ VISION + K-MEANS FALLBACK)
-// ══════════════════════════════════════════════════════════════
-function fileToBase64(file){
-  return new Promise((res,rej)=>{
-    const reader=new FileReader();
-    reader.onload=()=>res(reader.result.split(',')[1]);
-    reader.onerror=rej;
-    reader.readAsDataURL(file);
-  });
-}
-
-function extractDominantColors(imgEl,k=6){
-  const c=document.createElement('canvas');
-  c.width=80;c.height=80;
-  const ctx=c.getContext('2d');
-  ctx.drawImage(imgEl,0,0,80,80);
-  const data=ctx.getImageData(0,0,80,80).data;
-  const pixels=[];
-  for(let i=0;i<data.length;i+=4){
-    if(data[i+3]<128)continue;
-    pixels.push([data[i],data[i+1],data[i+2]]);
-  }
-  let centroids=pixels
-    .filter((_,i)=>i%Math.floor(pixels.length/k)===0)
-    .slice(0,k);
-  for(let iter=0;iter<12;iter++){
-    const clusters=centroids.map(()=>[]);
-    for(const p of pixels){
-      let best=0,bestD=Infinity;
-      centroids.forEach((c,i)=>{
-        const d=(p[0]-c[0])**2+(p[1]-c[1])**2+(p[2]-c[2])**2;
-        if(d<bestD){bestD=d;best=i;}
-      });
-      clusters[best].push(p);
-    }
-    centroids=clusters.map(cl=>{
-      if(!cl.length)return[128,128,128];
-      const avg=cl.reduce((a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]]);
-      return avg.map(v=>Math.round(v/cl.length));
-    });
-  }
-  return centroids.map(([r,g,b])=>
-    '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join(''));
-}
-
-function detectSettFromImage(imgEl,dominantColors){
-  const c=document.createElement('canvas');
-  c.width=200;c.height=1;
-  const ctx=c.getContext('2d');
-  ctx.drawImage(imgEl,0,imgEl.height*0.45,imgEl.width,
-                imgEl.height*0.1,0,0,200,1);
-  const data=ctx.getImageData(0,0,200,1).data;
-  const bands=[];
-  let currentColor=null,count=0;
-  for(let x=0;x<200;x++){
-    const r=data[x*4],g=data[x*4+1],b=data[x*4+2];
-    let best=dominantColors[0],bestD=Infinity;
-    for(const hex of dominantColors){
-      const hr=parseInt(hex.slice(1,3),16);
-      const hg=parseInt(hex.slice(3,5),16);
-      const hb=parseInt(hex.slice(5,7),16);
-      const d=(r-hr)**2+(g-hg)**2+(b-hb)**2;
-      if(d<bestD){bestD=d;best=hex;}
-    }
-    if(best===currentColor){count++;}
-    else{if(currentColor)bands.push({c:currentColor,n:count});
-         currentColor=best;count=1;}
-  }
-  if(currentColor)bands.push({c:currentColor,n:count});
-  const maxN=Math.max(...bands.map(b=>b.n));
-  return bands.map(b=>({c:b.c,n:Math.max(1,Math.round((b.n/maxN)*8))}));
-}
-
-function loadImageFromFile(file){
-  return new Promise(res=>{
-    const img=new Image();
-    img.onload=()=>res(img);
-    img.src=URL.createObjectURL(file);
-  });
-}
-
-async function analyzeImageWithGroq(file){
-  const base64=await fileToBase64(file);
-  const mime=file.type||'image/jpeg';
-  const GROQ_KEY=window.__GROQ_KEY
-    ||document.querySelector('meta[name="groq-key"]')?.content||'';
-
-  if(!GROQ_KEY)return null;
-
-  try{
-    const res=await fetch(
-      'https://api.groq.com/openai/v1/chat/completions',{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'Authorization':'Bearer '+GROQ_KEY
-      },
-      body:JSON.stringify({
-        model:'meta-llama/llama-4-scout-17b-16e-instruct',
-        temperature:0.2,
-        max_tokens:400,
-        messages:[{
-          role:'user',
-          content:[
-            {
-              type:'image_url',
-              image_url:{url:`data:${mime};base64,${base64}`}
-            },
-            {
-              type:'text',
-              text:`You are a textile expert. Analyze this fabric image.
-Return ONLY raw JSON, no markdown, no explanation:
-{
-  "sett": [{"c":"#hexcolor","n":threadCount}, ...],
-  "weave": "twill22 or twill21 or plain or satin5",
-  "description": "one line fabric description",
-  "confidence": 0.0 to 1.0
-}
-Rules:
-- sett max 8 entries, n between 1 and 12
-- c must be exact hex color visible in the image
-- Order colors left to right as they appear in fabric
-- For tartan/plaid use twill22, for grid checks use plain
-- Return only JSON, nothing else`
-            }
-          ]
-        }]
-      })
-    });
-    const data=await res.json();
-    if(data.error)return null;
-    const raw=data.choices[0].message.content.trim();
-    return JSON.parse(raw.replace(/```json|```/g,'').trim());
-  }catch(e){
-    return null;
-  }
-}
-
-async function handleImageDrop(file){
-  if(!file||!file.type.startsWith('image/'))return;
-
-  const uploadZone=document.getElementById('upload-zone');
-  const previewURL=URL.createObjectURL(file);
-  uploadZone.style.backgroundImage=`url(${previewURL})`;
-  uploadZone.style.backgroundSize='cover';
-  uploadZone.style.backgroundPosition='center';
-
-  showToast("Analyzing fabric image...");
-
-  let result=await analyzeImageWithGroq(file);
-
-  if(!result||!result.sett?.length){
-    showToast("Using local color extraction...");
-    const img=await loadImageFromFile(file);
-    const colors=extractDominantColors(img,6);
-    const raw=detectSettFromImage(img,colors);
-    const merged=[];
-    for(const band of raw){
-      const last=merged[merged.length-1];
-      if(last&&last.c===band.c)last.n+=band.n;
-      else merged.push({...band});
-    }
-    result={
-      sett:merged,
-      weave:'twill22',
-      description:'Local color extraction',
-      confidence:0.6
+// ─── IMAGE → DESIGN PIPELINE ─────────────────────────────────
+function handleImageFile(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const prev = document.getElementById('upload-prev');
+    prev.src = ev.target.result;
+    prev.style.display = 'block';
+    const img = new Image();
+    img.onload = () => {
+      addMsg('ai', '🔍 Analysing image...');
+      analyzeWithGroqVision(file, img);
     };
-  }
-
-  S.sett=result.sett;
-  S.weave=result.weave||S.weave;
-  S.activePreset=-1;
-
-  renderSettUI();
-  renderSettBar();
-  renderPresets();
-  updateAll();
-
-  const pct=Math.round((result.confidence||0.8)*100);
-  showToast(`✦ ${result.description} — ${pct}% confidence`);
-
-  addMsg('ai',
-    `✦ Fabric analyzed from image:\n`+
-    `Sett: ${toSettNotation(result.sett)}\n`+
-    `Structure: ${result.weave}\n`+
-    `${result.description} (${pct}% confidence)`,
-    result.sett
-  );
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
-// ══════════════════════════════════════════════════════════════
-//  LIBRARY
+async function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+async function analyzeWithGroqVision(file, imgEl) {
+  const GROQ_KEY = document.querySelector('meta[name="groq-key"]')?.content || window.__GROQ_KEY || '';
+  if (GROQ_KEY) {
+    try {
+      const base64 = await fileToBase64(file);
+      const mime   = file.type || 'image/jpeg';
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${GROQ_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+          messages: [{ role: 'user', content: [
+            { type: 'text', text: `Analyse this fabric/tartan image and return ONLY JSON:\n{"sett":[{"c":"#hex","n":threads},...], "weave":"twill22", "confidence":87, "description":"..."}\nRules: c=color hex, n=threads(2-12), weave in [twill22|twill21|plain|satin5], max 10 stripes, left-to-right order, no markdown.` },
+            { type: 'image_url', image_url: { url: `data:${mime};base64,${base64}` } }
+          ] }],
+          max_tokens: 400,
+          temperature: 0.1
+        })
+      });
+      const data = await res.json();
+      const raw  = data.choices?.[0]?.message?.content || '';
+      const json = JSON.parse(raw.replace(/```json|```/g, '').trim());
+      if (json.sett && json.sett.length >= 2) {
+        applyImageResult(json.sett, json.weave, json.confidence, json.description);
+        return;
+      }
+    } catch (err) {
+      console.warn('Groq Vision failed:', err);
+    }
+  }
+  const sett = localKMeansExtract(imgEl);
+  applyImageResult(sett, 'twill22', 72, 'Local extraction (no API)');
+}
+
+function localKMeansExtract(imgEl) {
+  const size = 64;
+  const tc   = document.createElement('canvas');
+  tc.width   = size; tc.height = 1;
+  const ctx  = tc.getContext('2d');
+  ctx.drawImage(imgEl, 0, 0, size, 1);
+  const data = ctx.getImageData(0, 0, size, 1).data;
+  const sampledColors = [];
+  for (let i = 0; i < size; i++) {
+    const r = data[i*4], g = data[i*4+1], b = data[i*4+2];
+    const hex = '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
+    const exists = sampledColors.find(s => {
+      const sr = parseInt(s.c.slice(1,3),16), sg = parseInt(s.c.slice(3,5),16), sb = parseInt(s.c.slice(5,7),16);
+      return Math.abs(sr-r)+Math.abs(sg-g)+Math.abs(sb-b) < 55;
+    });
+    if (exists) exists.n++;
+    else sampledColors.push({ c: hex, n: 1 });
+  }
+  return sampledColors.filter(s => s.n > 1).sort((a,b) => b.n - a.n).slice(0, 8).map(s => ({ c: s.c, n: Math.max(2, Math.min(10, s.n)) }));
+}
+
+function applyImageResult(sett, weave, confidence, description) {
+  if (!sett || sett.length < 2) {
+    addMsg('ai', '⚠️ Could not extract enough colors. Try a clearer image.');
+    return;
+  }
+  S.sett = sett; S.weave = weave || 'twill22'; S.activePreset = -1;
+  document.getElementById('weave-sel').value = S.weave;
+  renderSettUI(); renderSettBar(); renderPresets(); updateAll();
+  const conf = confidence ? ` (${confidence}% confidence)` : '';
+  addMsg('ai', `✅ Image analysed${conf}! Extracted ${sett.length} color stripes.\n${description ? `💬 "${description}"` : ''}\nUse chat to refine.`, sett);
+  showToast(`Image → ${sett.length} color sett!`);
+}
+
 // ══════════════════════════════════════════════════════════════
 function saveDesign(){
   const name=prompt("Design name:",S.sett.slice(0,3).map(s=>s.c).join(" "));
@@ -1694,30 +1634,38 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.querySelectorAll(".chip").forEach(c=>c.addEventListener("click",()=>sendMsg(c.textContent)));
 
   // Image upload with Groq Vision
-  const uploadZone=document.getElementById('upload-zone');
-  const fileInput=document.getElementById('img-input');
-  uploadZone.addEventListener('click',()=>fileInput.click());
-  fileInput.addEventListener('change',e=>{
-    if(e.target.files[0])handleImageDrop(e.target.files[0]);
+  const uploadZone = document.getElementById('upload-zone');
+  const fileInput  = document.getElementById('img-input');
+
+  uploadZone.addEventListener('click', (e) => {
+    if (e.target === fileInput) return;
+    fileInput.value = '';      // reset so same file can be re-uploaded
+    fileInput.click();
   });
-  uploadZone.addEventListener('dragover',e=>{
+
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    handleImageFile(file);
+  });
+
+  uploadZone.addEventListener('dragover',  e => { e.preventDefault(); uploadZone.classList.add('drag'); });
+  uploadZone.addEventListener('dragleave', ()  => uploadZone.classList.remove('drag'));
+  uploadZone.addEventListener('drop',      e  => {
     e.preventDefault();
-    uploadZone.classList.add('drag-over');
+    uploadZone.classList.remove('drag');
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('image/')) handleImageFile(f);
   });
-  uploadZone.addEventListener('dragleave',()=>{
-    uploadZone.classList.remove('drag-over');
-  });
-  uploadZone.addEventListener('drop',e=>{
-    e.preventDefault();
-    uploadZone.classList.remove('drag-over');
-    const file=e.dataTransfer?.files?.[0];
-    if(file)handleImageDrop(file);
-  });
-  document.addEventListener('paste',e=>{
-    const file=Array.from(e.clipboardData.items)
-      .find(i=>i.type.startsWith('image/'))
-      ?.getAsFile();
-    if(file)handleImageDrop(file);
+
+  // Ctrl+V paste support:
+  document.addEventListener('paste', e => {
+    const item = [...e.clipboardData.items].find(i => i.type.startsWith('image/'));
+    if (item) {
+      const file = item.getAsFile();
+      handleImageFile(file);
+      addMsg('ai', '📋 Image pasted from clipboard — analysing...');
+    }
   });
 
   // Exports
