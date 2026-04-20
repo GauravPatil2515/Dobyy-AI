@@ -59,7 +59,8 @@ header{display:flex;align-items:center;justify-content:space-between;
   width:30px;height:30px;border-radius:var(--r-sm);background:var(--text);flex-shrink:0}
 .logo-text{font-family:var(--font-d);font-size:19px;font-weight:600;color:var(--text)}
 .logo-sub{font-style:italic;font-size:13px;color:var(--text-muted);margin-left:1px}
-.hdr-right{display:flex;align-items:center;gap:6px}
+.hdr-right{display:flex;align-items:center;gap:4px}
+.hdr-ctrls{display:flex;align-items:center;gap:2px}
 .btn-icon{width:34px;height:34px;border-radius:var(--r-sm);display:flex;align-items:center;
   justify-content:center;color:var(--text-muted)}
 .btn-icon:hover{background:var(--surface-off);color:var(--text)}
@@ -240,9 +241,10 @@ canvas.fabric-canvas{border-radius:var(--r-lg);box-shadow:var(--shadow-lg);image
 .btn-send.loading{animation:pulse 0.8s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
-.export-row{padding:8px 12px;border-top:1px solid var(--border);display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap}
-.btn-exp{flex:1;min-width:70px;padding:6px;border-radius:var(--r-sm);font-size:10px;font-weight:500;
-  border:1px solid var(--border);background:var(--surface-off);color:var(--text-muted);transition:all var(--trans)}
+.export-row{padding:6px 8px;border-top:1px solid var(--border);display:flex;gap:3px;flex-shrink:0;flex-wrap:nowrap}
+.btn-exp{flex:1;min-width:0;padding:5px 3px;border-radius:var(--r-sm);font-size:9px;font-weight:500;
+  border:1px solid var(--border);background:var(--surface-off);color:var(--text-muted);transition:all var(--trans);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .btn-exp:hover{background:var(--surface-2);color:var(--text)}
 .btn-exp.primary{background:var(--text);color:var(--bg);border-color:var(--text)}
 .btn-exp.primary:hover{opacity:.85}
@@ -284,6 +286,14 @@ canvas.fabric-canvas{border-radius:var(--r-lg);box-shadow:var(--shadow-lg);image
   </a>
   <div class="hdr-right">
     <span id="pattern-badge">Royal Stewart · 2/2 twill</span>
+    <div class="hdr-ctrls">
+      <button class="btn-icon" id="btn-undo" title="Undo (Ctrl+Z)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M3 13C5 8 9 5 14 5a9 9 0 0 1 0 18H9"/></svg>
+      </button>
+      <button class="btn-icon" id="btn-redo" title="Redo (Ctrl+Y)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7v6h-6"/><path d="M21 13C19 8 15 5 10 5a9 9 0 0 0 0 18h5"/></svg>
+      </button>
+    </div>
     <button class="btn-icon" id="theme-btn" aria-label="Toggle theme">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
     </button>
@@ -442,10 +452,11 @@ canvas.fabric-canvas{border-radius:var(--r-lg);box-shadow:var(--shadow-lg);image
     </div>
   </div>
   <div class="export-row">
-    <button class="btn-exp" id="exp-png">⬇ PNG</button>
-    <button class="btn-exp" id="exp-json">⬇ JSON</button>
-    <button class="btn-exp" id="exp-spec">⬇ Spec</button>
-    <button class="btn-exp primary" id="exp-wif">⬇ WIF</button>
+    <button class="btn-exp" id="exp-png">↓PNG</button>
+    <button class="btn-exp" id="exp-json">↓JSN</button>
+    <button class="btn-exp" id="exp-spec">📋Spc</button>
+    <button class="btn-exp" id="exp-wif">↓WIF</button>
+    <button class="btn-exp primary" id="btn-share">🔗</button>
   </div>
 </div>
 </div>
