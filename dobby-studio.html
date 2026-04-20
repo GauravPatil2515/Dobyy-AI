@@ -158,11 +158,11 @@ canvas.fabric-canvas{border-radius:var(--r-lg);box-shadow:var(--shadow-lg);image
 
 /* ── CHAT PANEL ── */
 .chat{background:var(--surface);border-left:1px solid var(--border);
-  display:flex;flex-direction:column;overflow:hidden}  
+  display:flex;flex-direction:column;overflow:hidden;height:100%}  
 .chat-hdr{padding:11px 13px;border-bottom:1px solid var(--border);flex-shrink:0}
 .chat-title{font-family:var(--font-d);font-size:16px;font-weight:600;line-height:1.2}
 .chat-sub{font-size:9px;color:var(--text-faint);margin-top:1px}
-.chat-upload{flex-shrink:0;overflow:visible;border-bottom:1px solid var(--divider);background:var(--surface)}
+.chat-upload{flex-shrink:0;overflow:visible;border-bottom:1px solid var(--divider);background:var(--surface);min-height:auto}
 
 /* upload */
 .upload-zone{
@@ -209,7 +209,7 @@ canvas.fabric-canvas{border-radius:var(--r-lg);box-shadow:var(--shadow-lg);image
   cursor: pointer;
 }
 
-.chat-msgs{flex:1;overflow-y:auto;padding:8px 12px;display:flex;flex-direction:column;gap:6px}
+.chat-msgs{flex:1;overflow-y:auto;padding:8px 12px;display:flex;flex-direction:column;gap:6px;min-height:0}
 .msg{display:flex;flex-direction:column;gap:2px;animation:msgIn .18s ease}
 @keyframes msgIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 .msg.user{align-items:flex-end}.msg.ai{align-items:flex-start}
@@ -240,8 +240,8 @@ canvas.fabric-canvas{border-radius:var(--r-lg);box-shadow:var(--shadow-lg);image
 .btn-send.loading{animation:pulse 0.8s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
-.export-row{padding:6px 8px;border-top:1px solid var(--border);display:flex;gap:3px;flex-shrink:0;flex-wrap:nowrap}
-.btn-exp{flex:1;min-width:0;padding:5px 3px;border-radius:var(--r-sm);font-size:9px;font-weight:500;
+.export-row{padding:6px 8px;border-top:1px solid var(--border);display:flex;gap:3px;flex-shrink:0;flex-wrap:wrap}
+.btn-exp{flex:1 1 45px;min-width:45px;padding:5px 3px;border-radius:var(--r-sm);font-size:9px;font-weight:500;
   border:1px solid var(--border);background:var(--surface-off);color:var(--text-muted);transition:all var(--trans);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .btn-exp:hover{background:var(--surface-2);color:var(--text)}
