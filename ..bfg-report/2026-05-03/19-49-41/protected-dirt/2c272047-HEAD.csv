@@ -1,0 +1,5 @@
+0782a80a6512fcb686219ab033ff7df89ff80b06,MODIFY,regular-file,api-test.js,3547,6
+46543dfeda0fd8c816b5831fa4850778725cb2e3,MODIFY,regular-file,api/openrouter.js,1486,5
+324db76597ecfd75e2632dd97b4c58ef2484b7b5,MODIFY,regular-file,src/utils/imageAnalyzer.js,12580,124
+dbbce7be4006125668e40098d540016e7895cccc,MODIFY,regular-file,test-openrouter.html,15031,6
+60e4d046ca51ea5aa48ee7174127ad166f2354c6,MODIFY,regular-file,vite.config.js,1364,8

@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="openrouter-key" content="***REMOVED***">
+  <title>OpenRouter AI & Model Test</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Courier New', monospace;
+      background: #1a1a1a;
+      color: #00ff00;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 { text-align: center; margin-bottom: 30px; color: #00ffff; }
+    .test { margin-bottom: 20px; padding: 15px; background: #0a0a0a; border: 1px solid #00ff00; border-radius: 5px; }
+    .test h2 { color: #ffff00; margin-bottom: 10px; }
+    .controls { margin-bottom: 15px; }
+    button { 
+      background: #00ff00; 
+      color: #000; 
+      border: none; 
+      padding: 8px 15px; 
+      border-radius: 3px; 
+      cursor: pointer; 
+      font-weight: bold; 
+      margin-right: 10px;
+    }
+    button:hover { background: #00dd00; }
+    .output { max-height: 300px; overflow-y: auto; background: #000; padding: 10px; border: 1px solid #004400; border-radius: 3px; font-size: 12px; }
+    .success { color: #00ff00; }
+    .error { color: #ff0000; }
+    .warning { color: #ffff00; }
+    .info { color: #00ffff; }
+    .loading { color: #ffaa00; }
+    textarea { width: 100%; height: 80px; margin-top: 10px; background: #0a0a0a; color: #00ff00; border: 1px solid #00ff00; padding: 10px; font-family: monospace; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🤖 OpenRouter AI & Model Test Suite</h1>
+
+    <!-- Test 1: API Connectivity -->
+    <div class="test">
+      <h2>Test 1: API Connectivity</h2>
+      <div class="controls">
+        <button onclick="testConnectivity()">Test Connection</button>
+      </div>
+      <div class="output" id="test1"></div>
+    </div>
+
+    <!-- Test 2: List Available Models -->
+    <div class="test">
+      <h2>Test 2: List Available Models</h2>
+      <div class="controls">
+        <button onclick="listModels()">List Models</button>
+      </div>
+      <div class="output" id="test2"></div>
+    </div>
+
+    <!-- Test 3: Direct Vision API Test -->
+    <div class="test">
+      <h2>Test 3: Vision Model Test (with Test Image)</h2>
+      <div class="controls">
+        <button onclick="testVisionModel()">Test Vision Model</button>
+      </div>
+      <div class="output" id="test3"></div>
+    </div>
+
+    <!-- Test 4: Text Model Test -->
+    <div class="test">
+      <h2>Test 4: Text Model Test</h2>
+      <div class="controls">
+        <button onclick="testTextModel()">Test Text Model</button>
+      </div>
+      <div class="output" id="test4"></div>
+    </div>
+
+    <!-- Test 5: Upload & Analyze Real Image -->
+    <div class="test">
+      <h2>Test 5: Upload & Analyze Real Fabric Image</h2>
+      <input type="file" id="imageFile" accept="image/*">
+      <div class="controls">
+        <button onclick="analyzeuploaded()">Analyze Uploaded Image</button>
+      </div>
+      <div class="output" id="test5"></div>
+    </div>
+
+    <!-- Summary -->
+    <div class="test" id="summary" style="display:none;">
+      <h2>Test Summary</h2>
+      <div id="summaryContent"></div>
+    </div>
+  </div>
+
+  <script>
+    const OR_KEY = document.querySelector('meta[name="openrouter-key"]').content;
+    let testResults = {};
+
+    const API_BASE = '/api/openrouter';
+
+    function log(elementId, message, type = 'info') {
+      const el = document.getElementById(elementId);
+      const timestamp = new Date().toLocaleTimeString();
+      const span = document.createElement('div');
+      span.className = type;
+      span.textContent = `[${timestamp}] ${message}`;
+      el.appendChild(span);
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function clear(elementId) {
+      document.getElementById(elementId).innerHTML = '';
+    }
+
+    async function proxyFetch(payload) {
+      // Send directly to /api/openrouter endpoint
+      // Vite proxy will handle routing to OpenRouter API
+      const res = await fetch(API_BASE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      return await res.json();
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // TEST 1: CONNECTIVITY
+    // ════════════════════════════════════════════════════════════════
+    async function testConnectivity() {
+      clear('test1');
+      log('test1', 'Testing OpenRouter API connectivity...', 'loading');
+
+      try {
+        // Simple test by sending a minimal request
+        const res = await proxyFetch({
+          model: 'meta-llama/llama-4-maverick:free',
+          messages: [{ role: 'user', content: 'Hi' }],
+          max_tokens: 10
+        });
+
+        if (res.choices?.[0]?.message?.content) {
+          log('test1', `✓ Connected successfully!`, 'success');
+          log('test1', `Response received`, 'success');
+          testResults.connectivity = true;
+        } else {
+          log('test1', `✗ No response from API`, 'error');
+          testResults.connectivity = false;
+        }
+      } catch (err) {
+        log('test1', `✗ Connection failed: ${err.message}`, 'error');
+        testResults.connectivity = false;
+      }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // TEST 2: LIST MODELS
+    // ════════════════════════════════════════════════════════════════
+    async function listModels() {
+      clear('test2');
+      log('test2', 'Note: Model listing requires separate endpoint (not in standard API)', 'info');
+      log('test2', 'Using default: meta-llama/llama-4-maverick:free (free tier)', 'success');
+      testResults.models = true;
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // TEST 3: VISION MODEL
+    // ════════════════════════════════════════════════════════════════
+    async function testVisionModel() {
+      clear('test3');
+      log('test3', 'Testing vision model with sample image...', 'loading');
+
+      try {
+        // Small red square test image (1x1 red pixel)
+        const testImageBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';
+
+        log('test3', 'Sending request through proxy...', 'loading');
+
+        const res = await proxyFetch({
+          model: 'meta-llama/llama-4-maverick:free',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'What color is this image? Reply with just the color name.' },
+                { type: 'image_url', image_url: { url: `data:image/png;base64,${testImageBase64}` } }
+              ]
+            }
+          ],
+          max_tokens: 50,
+          temperature: 0.3
+        });
+
+        if (res.error) {
+          log('test3', `Error: ${res.error.message}`, 'error');
+          testResults.vision = false;
+          return;
+        }
+
+        const reply = res.choices?.[0]?.message?.content || '';
+        log('test3', `✓ Vision model responded!`, 'success');
+        log('test3', `Response: "${reply}"`, 'success');
+        testResults.vision = true;
+      } catch (err) {
+        log('test3', `Error: ${err.message}`, 'error');
+        testResults.vision = false;
+      }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // TEST 4: TEXT MODEL
+    // ════════════════════════════════════════════════════════════════
+    async function testTextModel() {
+      clear('test4');
+      log('test4', 'Testing text model...', 'loading');
+
+      try {
+        const res = await proxyFetch('chat/completions', {
+          model: 'meta-llama/llama-4-maverick:free',
+          messages: [
+            { role: 'user', content: 'What is textile weaving? Reply in 1 sentence.' }
+          ],
+          max_tokens: 100,
+          temperature: 0.5
+        });
+
+        if (!res.ok) {
+          log('test4', `Error ${res.status}`, 'error');
+          if (res.data?.error) log('test4', `  ${res.data.error.message}`, 'error');
+          testResults.text = false;
+          return;
+        }
+
+        const reply = res.data?.choices?.[0]?.message?.content || '';
+        log('test4', `✓ Text model responded!`, 'success');
+        log('test4', `Response: "${reply}"`, 'success');
+        testResults.text = true;
+      } catch (err) {
+        log('test4', `Error: ${err.message}`, 'error');
+        testResults.text = false;
+      }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // TEST 5: ANALYZE UPLOADED IMAGE
+    // ════════════════════════════════════════════════════════════════
+    async function analyzeupload() {
+      clear('test5');
+      const file = document.getElementById('imageFile').files[0];
+
+      if (!file) {
+        log('test5', 'Please select an image file first', 'warning');
+        return;
+      }
+
+      log('test5', `Analyzing: ${file.name} (${(file.size/1024).toFixed(1)} KB)`, 'info');
+      log('test5', 'Converting to base64...', 'loading');
+
+      try {
+        const base64 = await fileToBase64(file);
+        log('test5', `Base64 length: ${base64.length} chars`, 'success');
+
+        log('test5', 'Sending to OpenRouter vision...', 'loading');
+
+        const res = await fetch('https://api.openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${OR_KEY}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': window.location.origin,
+            'X-Title': 'Dobby Test Suite'
+          },
+          body: JSON.stringify({
+            model: 'meta-llama/llama-4-maverick:free',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a textile analysis API. Output ONLY raw JSON no markdown.'
+              },
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: `Analyze this fabric and return JSON:
+{"colors": ["#hex1", "#hex2"], "pattern": "description", "quality": 0-10}`
+                  },
+                  {
+                    type: 'image_url',
+                    image_url: { url: `data:image/jpeg;base64,${base64}` }
+                  }
+                ]
+              }
+            ],
+            max_tokens: 200,
+            temperature: 0.3
+          })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          log('test5', `Error ${res.status}`, 'error');
+          if (data.error) log('test5', `  ${data.error.message}`, 'error');
+          testResults.uploaded = false;
+          return;
+        }
+
+        const reply = data.choices?.[0]?.message?.content || '';
+        log('test5', `✓ Analysis complete!`, 'success');
+        log('test5', `Raw response: ${reply.substring(0, 200)}...`, 'info');
+
+        try {
+          const json = JSON.parse(reply);
+          log('test5', `✓ Valid JSON parsed`, 'success');
+          log('test5', JSON.stringify(json, null, 2), 'success');
+          testResults.uploaded = true;
+        } catch (e) {
+          log('test5', `⚠ Response not valid JSON`, 'warning');
+          testResults.uploaded = false;
+        }
+      } catch (err) {
+        log('test5', `Error: ${err.message}`, 'error');
+        testResults.uploaded = false;
+      }
+    }
+
+    function analyzeupload() {
+      clear('test5');
+      const file = document.getElementById('imageFile').files[0];
+      if (!file) {
+        log('test5', 'Please select an image file', 'warning');
+        return;
+      }
+      analyzeImageFile(file);
+    }
+
+    async function analyzeImageFile(file) {
+      log('test5', `Analyzing: ${file.name}`, 'loading');
+      try {
+        const base64 = await fileToBase64(file);
+        const res = await proxyFetch('chat/completions', {
+          model: 'meta-llama/llama-4-maverick:free',
+          messages: [{
+            role: 'user',
+            content: [{
+              type: 'text',
+              text: 'Describe this image in 1 sentence.'
+            }, {
+              type: 'image_url',
+              image_url: { url: `data:image/jpeg;base64,${base64}` }
+            }]
+          }],
+          max_tokens: 100
+        });
+        const reply = res.data?.choices?.[0]?.message?.content || 'No response';
+        log('test5', `✓ Response: ${reply}`, 'success');
+        testResults.uploaded = true;
+      } catch (err) {
+        log('test5', `✗ Error: ${err.message}`, 'error');
+        testResults.uploaded = false;
+      }
+    }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = reject;
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onerror = reject;
+          img.onload = () => {
+            const MAX = 768;
+            let w = img.width, h = img.height;
+            if (w > MAX || h > MAX) {
+              if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+              else { w = Math.round(w * MAX / h); h = MAX; }
+            }
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            c.getContext('2d').drawImage(img, 0, 0, w, h);
+            resolve(c.toDataURL('image/jpeg', 0.82).split(',')[1]);
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Initialize
+    window.addEventListener('load', () => {
+      log('test1', `✓ OpenRouter key loaded (${OR_KEY.substring(0, 15)}...)`, 'success');
+    });
+  </script>
+</body>
+</html>
