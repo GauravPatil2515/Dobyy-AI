@@ -1,0 +1,70 @@
+\begin{thebibliography}{10}
+
+\bibitem{ref1}
+R.~Gupta and A.~Sharma.
+\newblock Evolution of computer-aided design in textile engineering: From punch
+  cards to digital weaving.
+\newblock {\em Journal of Textile Science and Technology}, 18(4):112--128,
+  2023.
+
+\bibitem{ref2}
+N.~Patel and V.~Deshmukh.
+\newblock Economic viability of commercial cad systems in small-scale fabric
+  manufacturing.
+\newblock {\em International Journal of Advanced Textile Engineering},
+  9(2):45--60, 2022.
+
+\bibitem{ref3}
+M.~Lee and S.~Kim.
+\newblock Generative ai for fashion and textile design: A review of current nlp
+  applications.
+\newblock In {\em Proceedings of the 2024 International Conference on
+  Artificial Intelligence in Creative Industries}, pages 204--215, 2024.
+
+\bibitem{ref4}
+T.~O'Connor and Y.~Zhu.
+\newblock Translating natural language intent to structured manufacturing
+  metadata using large language models.
+\newblock {\em IEEE Transactions on Industrial Informatics}, 21(1):330--345,
+  2025.
+
+\bibitem{ref5}
+P.~Singh and R.~Agarwal.
+\newblock Prompt engineering strategies for domain-specific data extraction
+  using llama 3.
+\newblock {\em Expert Systems with Applications}, 230:118--130, 2024.
+
+\bibitem{ref6}
+H.~Chen and L.~Wei.
+\newblock Low-latency llm inference for interactive web applications using groq
+  hardware accelerators.
+\newblock In {\em Advances in Edge and Cloud Computing}, pages 77--92.
+  Springer, 2023.
+
+\bibitem{ref8}
+I.~MacDonald and D.~Fraser.
+\newblock {\em Mathematics of Tartan Sett Analysis and Reflective Weave
+  Structures}.
+\newblock Scottish Textile Academic Press, 2022.
+
+\bibitem{ref9}
+C.~Dawson and J.~Miller.
+\newblock Wif 1.1: Weave interchange format specification and implementation
+  guide.
+\newblock Technical report, Digital Weaving Consortium, 2023.
+
+\bibitem{ref10}
+M.~Joshi and R.~Tiwari.
+\newblock Digital empowerment in indian handloom clusters: Case studies from
+  varanasi and surat.
+\newblock {\em Asian Journal of Technology and Development}, 14(3):88--104,
+  2023.
+
+\bibitem{ref11}
+A.~Mishra and S.~Pandey.
+\newblock Overcoming technical barriers in artisanal indian weaving using
+  cloud-based accessibility tools.
+\newblock In {\em Proceedings of the IEEE Global Humanitarian Technology
+  Conference}, pages 112--119, 2022.
+
+\end{thebibliography}

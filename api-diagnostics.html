@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dobby API & Model Diagnostics</title>
+  <style>
+    body {
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f5f3ee;
+      color: #1c140a;
+    }
+    .diagnostic {
+      background: #faf9f6;
+      border: 1px solid #ede9e1;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 15px;
+    }
+    .test {
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 5px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+    }
+    .test.pending { background: #fff9e6; border-left: 3px solid #ffcc00; }
+    .test.success { background: #e8efe7; border-left: 3px solid #5c7a5a; }
+    .test.error { background: #ffe8e8; border-left: 3px solid #cc2211; }
+    .test.warning { background: #fff0e6; border-left: 3px solid #ff9900; }
+    
+    h1 { margin-top: 0; color: #1c140a; }
+    h2 { font-size: 16px; margin-top: 0; color: #7a7060; }
+    
+    code { 
+      background: #ede9e1;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+    
+    button {
+      background: #1c140a;
+      color: #faf9f6;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+    button:hover { opacity: 0.85; }
+    
+    .spinner { display: inline-block; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <h1>🔍 Dobby API & Model Diagnostics</h1>
+  
+  <div class="diagnostic">
+    <h2>Backend Configuration</h2>
+    <div id="backend" class="test pending">⏳ Checking backend API key...</div>
+  </div>
+
+  <div class="diagnostic">
+    <h2>Groq API Connectivity</h2>
+    <div id="connectivity" class="test pending">⏳ Testing connection to Groq API...</div>
+  </div>
+
+  <div class="diagnostic">
+    <h2>Model Availability</h2>
+    <div id="models" class="test pending">⏳ Checking available models...</div>
+  </div>
+
+  <div class="diagnostic">
+    <h2>Vision API Support</h2>
+    <div id="vision" class="test pending">⏳ Testing Vision API with test image...</div>
+  </div>
+
+  <div class="diagnostic">
+    <h2>JSON Parsing</h2>
+    <div id="json" class="test pending">⏳ Testing JSON response parsing...</div>
+  </div>
+
+  <div class="diagnostic">
+    <button onclick="runAllTests()">🔄 Run All Tests</button>
+  </div>
+
+  <script>
+    async function setTest(elementId, status, message, details = '') {
+      const el = document.getElementById(elementId);
+      el.className = `test ${status}`;
+      el.innerHTML = `${message}${details ? `<br><small>${details}</small>` : ''}`;
+    }
+
+    async function testBackend() {
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+            messages: [{ role: 'user', content: 'ping' }],
+            max_tokens: 10
+          })
+        });
+
+        if (res.status === 500) {
+          const err = await res.json();
+          setTest('backend', 'error', '❌ Backend API Key Not Configured', err.error);
+        } else if (res.ok) {
+          setTest('backend', 'success', '✅ Backend proxy configured and accessible');
+        } else {
+          setTest('backend', 'warning', `⚠️ Backend returned ${res.status}`, await res.text());
+        }
+      } catch (err) {
+        setTest('backend', 'error', '❌ Backend unreachable', err.message);
+      }
+    }
+
+    async function testConnectivity() {
+      try {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer test',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [{ role: 'user', content: 'test' }],
+            max_tokens: 10
+          })
+        });
+
+        if (res.status === 401) {
+          setTest('connectivity', 'success', '✅ Groq API is reachable (auth required)', 'API endpoint live and callable');
+        } else if (res.ok) {
+          setTest('connectivity', 'success', '✅ Groq API is up and responding');
+        } else {
+          setTest('connectivity', 'warning', `⚠️ API returned ${res.status}`, 'Check API key');
+        }
+      } catch (err) {
+        setTest('connectivity', 'error', '❌ Cannot reach Groq API', err.message);
+      }
+    }
+
+    async function testModels() {
+      try {
+        const res = await fetch('https://api.groq.com/openai/v1/models', {
+          headers: { 'Authorization': 'Bearer gsk_test' }
+        });
+
+        if (res.ok) {
+          const { data } = await res.json();
+          const llama = data.find(m => m.id.includes('llama'));
+          const scout = data.find(m => m.id === 'meta-llama/llama-4-scout-17b-16e-instruct');
+          
+          let msg = `✅ Found ${data.length} models`;
+          let details = `Models: ${data.slice(0, 3).map(m => m.id).join(', ')}`;
+          
+          if (scout) {
+            msg = '✅ Scout model (llama-4-scout-17b) is available';
+          } else if (llama) {
+            msg = `✅ Llama models found: ${llama.id}`;
+          }
+          
+          setTest('models', 'success', msg, details);
+        } else if (res.status === 401) {
+          setTest('models', 'warning', '⚠️ Cannot list models (auth required)', 'But Groq API is accessible');
+        } else {
+          setTest('models', 'error', `❌ Models endpoint returned ${res.status}`);
+        }
+      } catch (err) {
+        setTest('models', 'error', '❌ Cannot reach models endpoint', err.message);
+      }
+    }
+
+    async function testVision() {
+      try {
+        // Tiny 1x1 PNG (red pixel)
+        const testImg = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';
+        
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: 'Describe: {"test":"ok"}' },
+                  { type: 'image_url', image_url: { url: `data:image/png;base64,${testImg}` } }
+                ]
+              }
+            ],
+            max_tokens: 50
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const reply = data.choices?.[0]?.message?.content || 'No content';
+          setTest('vision', 'success', '✅ Vision API works', `Response: ${reply.slice(0, 60)}`);
+        } else if (res.status === 400 || res.status === 422) {
+          setTest('vision', 'warning', '⚠️ Vision endpoint exists but rejected request', 'May need real image or valid API key');
+        } else {
+          const text = await res.text();
+          setTest('vision', 'error', `❌ Vision failed (${res.status})`, text.slice(0, 100));
+        }
+      } catch (err) {
+        setTest('vision', 'error', '❌ Vision test error', err.message);
+      }
+    }
+
+    async function testJSON() {
+      try {
+        const testCases = [
+          '{"sett":[{"c":"#red","n":5}],"weave":"twill22"}',
+          '```json\n{"test":true}\n```',
+          'JSON: {"valid":true}',
+          'Multiple {"a":1} and {"b":2} objects'
+        ];
+
+        let passed = 0;
+        for (const testCase of testCases) {
+          // Strategy 1: Direct
+          try { JSON.parse(testCase.trim()); passed++; continue; } catch(e) {}
+          
+          // Strategy 2: Extract object
+          const match = testCase.match(/\{[\s\S]*\}/);
+          if (match) { try { JSON.parse(match[0]); passed++; continue; } catch(e) {} }
+          
+          // Strategy 3: Code block
+          const cbMatch = testCase.match(/```(?:json)?\s*([\s\S]*?)```/);
+          if (cbMatch) { try { JSON.parse(cbMatch[1].trim()); passed++; continue; } catch(e) {} }
+        }
+
+        if (passed === testCases.length) {
+          setTest('json', 'success', '✅ All JSON parsing strategies work', `Passed ${passed}/${testCases.length} tests`);
+        } else {
+          setTest('json', 'warning', `⚠️ JSON parser: ${passed}/${testCases.length} strategies working`);
+        }
+      } catch (err) {
+        setTest('json', 'error', '❌ JSON test error', err.message);
+      }
+    }
+
+    async function runAllTests() {
+      console.log('Starting diagnostics...');
+      
+      document.getElementById('backend').className = 'test pending';
+      document.getElementById('connectivity').className = 'test pending';
+      document.getElementById('models').className = 'test pending';
+      document.getElementById('vision').className = 'test pending';
+      document.getElementById('json').className = 'test pending';
+
+      await testBackend();
+      await testConnectivity();
+      await testModels();
+      await testVision();
+      await testJSON();
+      
+      console.log('Diagnostics complete');
+    }
+
+    // Auto-run tests on load
+    window.addEventListener('load', runAllTests);
+  </script>
+</body>
+</html>

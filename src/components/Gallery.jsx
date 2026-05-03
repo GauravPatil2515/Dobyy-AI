@@ -1,13 +1,32 @@
 import { useState } from 'react'
+import { useSubscription } from '../contexts/SubscriptionContext.jsx'
 
-export default function Gallery({ gallery, activeId, onSave, onLoad, onRemove, onRename }) {
+export default function Gallery({ 
+  gallery, 
+  activeId, 
+  onSave, 
+  onLoad, 
+  onRemove, 
+  onRename,
+  loading: galleryLoading,
+  canSaveMore,
+  maxDesigns
+}) {
   const [saveName,    setSaveName]    = useState('')
   const [editingId,   setEditingId]   = useState(null)
   const [editingName, setEditingName] = useState('')
 
-  const handleSave = () => {
-    onSave(saveName || undefined)
-    setSaveName('')
+  const handleSave = async () => {
+    if (!canSaveMore) {
+      alert(`Free tier limited to ${maxDesigns} designs. Delete some to save more.`)
+      return
+    }
+    try {
+      await onSave(saveName || undefined)
+      setSaveName('')
+    } catch (err) {
+      alert(err.message)
+    }
   }
 
   const startRename = (entry) => {
@@ -22,17 +41,32 @@ export default function Gallery({ gallery, activeId, onSave, onLoad, onRemove, o
 
   return (
     <div className="section">
-      <div className="section-title">My Designs</div>
+      <div className="section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>My Designs</span>
+        {galleryLoading && <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Loading...</span>}
+        {!galleryLoading && (
+          <span style={{ fontSize: '0.75rem', color: gallery.length >= maxDesigns ? '#dc2626' : '#9ca3af' }}>
+            {gallery.length}/{maxDesigns}
+          </span>
+        )}
+      </div>
 
       {/* Save current design */}
       <div className="gallery-save-row">
         <input
           className="reg-input"
-          placeholder="Design name (optional)"
+          placeholder={canSaveMore ? "Design name (optional)" : "Limit reached - delete to save"}
           value={saveName}
+          disabled={!canSaveMore || galleryLoading}
           onChange={e => setSaveName(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleSave()}/>
-        <button className="reg-btn" onClick={handleSave} title="Save design">
+        <button 
+          className="reg-btn" 
+          onClick={handleSave} 
+          disabled={!canSaveMore || galleryLoading}
+          title={canSaveMore ? "Save design" : "Design limit reached"}
+          style={{ opacity: canSaveMore ? 1 : 0.5 }}
+        >
           💾
         </button>
       </div>

@@ -6,6 +6,11 @@ An AI-powered tartan and fabric design tool powered by Groq's llama3-70b LLM.
 
 - 🎨 **Live Fabric Preview** — Real-time tartan rendering with fiber textures and lighting
 - 🤖 **AI Designer** — Describe your vision in natural language, watch the loom respond
+- 🔐 **Firebase Authentication** — Secure Google Sign-in with offline demo mode
+- ☁️ **Cloud Sync** — Firestore database saves designs across devices
+- 📴 **Offline Support** — Full functionality without internet via localStorage fallback
+- 💾 **Design Gallery** — Save, load, rename, and delete fabric designs
+- 🚦 **Rate Limiting** — Free tier (5 AI designs/day, 20 saved designs) with Pro upgrade path
 - 🧵 **Sett Builder** — Edit individual color stripes with precise thread counts
 - 🎯 **8 Presets** — Royal Stewart, Black Watch, Burberry, and more classic tartans
 - 🌈 **27 Named Colors** — Rich textile-appropriate color palette
@@ -18,6 +23,8 @@ An AI-powered tartan and fabric design tool powered by Groq's llama3-70b LLM.
 - **Frontend**: React 18 + Vite
 - **Styling**: Pure CSS with CSS variables (light/dark theme)
 - **AI**: Groq API (llama3-70b-8192)
+- **Auth**: Firebase Authentication (Google Sign-in)
+- **Database**: Firestore with offline persistence
 - **Rendering**: HTML5 Canvas with 5-pass rendering pipeline
 
 ## Getting Started
@@ -32,13 +39,18 @@ npm install
 
 ### Environment Setup
 
-Create `.env` with your Groq API key:
+Create `.env` with your API keys:
 
 ```
 VITE_GROQ_API_KEY=gsk_your_key_here
+VITE_FIREBASE_API_KEY=your_firebase_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
 ```
 
-Get a free API key at: https://console.groq.com
+Get a free Groq API key at: https://console.groq.com
+
+For Firebase, create a project at: https://console.firebase.google.com
 
 ### Development
 
@@ -73,6 +85,21 @@ vercel
 
 ## How It Works
 
+### Authentication & Cloud Sync
+
+1. **Sign in with Google** — Secure Firebase authentication
+2. **Offline Demo Mode** — Continue working without internet (designs saved locally)
+3. **Auto-Sync** — Designs sync to Firestore when online, fallback to localStorage when offline
+
+### Subscription Tiers
+
+| Feature | Free | Pro (Planned) |
+|---------|------|---------------|
+| AI designs/day | 5 | 100 |
+| Saved designs | 20 | 200 |
+| WIF Export | ❌ | ✅ |
+| Cloud sync | ✅ | ✅ |
+
 ### NLP Engine
 
 Describe your fabric in natural language:
@@ -93,26 +120,35 @@ Describe your fabric in natural language:
 
 ```
 src/
-├── components/          # 6 React components
-│   ├── Header.jsx
-│   ├── Sidebar.jsx
-│   ├── SettBuilder.jsx
-│   ├── FabricCanvas.jsx
-│   ├── ChatPanel.jsx
-│   └── LandingPage.jsx
-├── hooks/               # 2 custom hooks
-│   ├── useFabricState.js    (state + Groq async)
-│   └── useFabricRenderer.js (canvas rendering)
+├── components/          # React components
+│   ├── Header.jsx           # Toolbar with undo/redo, profile dropdown
+│   ├── Sidebar.jsx          # Navigation, gallery, sett builder
+│   ├── SettBuilder.jsx      # Color stripe editor
+│   ├── FabricCanvas.jsx     # Main rendering canvas
+│   ├── ChatPanel.jsx        # AI chat with rate limiting
+│   ├── LoginPage.jsx        # Google Sign-in UI
+│   ├── UpgradeModal.jsx     # Subscription upgrade prompt
+│   └── LandingPage.jsx      # Marketing landing page
+├── contexts/            # React Context providers
+│   ├── AuthContext.jsx      # Firebase auth state + offline detection
+│   ├── SubscriptionContext.jsx  # Rate limits + usage tracking
+│   └── OfflineContext.jsx   # Network status banner
+├── hooks/               # Custom hooks
+│   ├── useFabricState.js        (state + Groq async)
+│   ├── useFabricRenderer.js     (canvas rendering)
+│   ├── useGallery.js            (localStorage gallery - legacy)
+│   └── useFirestoreGallery.js   (Firestore + offline gallery)
 ├── utils/               # Utilities
-│   ├── colorUtils.js    (hex ↔ rgb, blending)
-│   ├── weaveUtils.js    (pattern expansion, matrices)
-│   ├── nlpEngine.js     (deprecated — kept for ref)
-│   └── groqClient.js    (Groq SDK wrapper)
+│   ├── colorUtils.js        (hex ↔ rgb, blending)
+│   ├── weaveUtils.js        (pattern expansion, matrices)
+│   ├── groqClient.js        (Groq SDK wrapper)
+│   └── imageAnalyzer.js     (Image upload analysis)
 ├── data/                # Constants
 │   ├── presets.js       (8 tartan presets)
 │   └── colors.js        (27 color map)
 ├── styles/
-│   └── main.css         (460 lines, light/dark theme)
+│   └── main.css         (light/dark theme)
+├── firebase.js          # Firebase initialization
 └── App.jsx, main.jsx
 ```
 
@@ -154,6 +190,58 @@ Uses Google Fonts (loaded in `index.html`):
 ### Groq API Rate Limited
 
 With free tier, you can send ~30 requests per minute. Wait a moment between prompts.
+
+### "Daily AI design limit reached"
+
+Free tier allows 5 AI-generated designs per day. Designs are tracked per user and reset daily.
+
+### Offline Mode Not Working
+
+- Check browser console for Firebase errors
+- Ensure `localStorage` is enabled in browser
+- Demo mode activates automatically when `navigator.onLine === false`
+
+### Designs Not Syncing to Cloud
+
+- Verify you're signed in with Google (not demo mode)
+- Check Firebase Firestore rules allow read/write
+- Designs saved in demo mode (with `local-` prefix IDs) will sync when you sign in online
+
+## Technical Details
+
+### Offline Support Implementation
+
+1. **Network Detection**: Uses `navigator.onLine` API + online/offline event listeners
+2. **Demo User**: Automatic fallback to `demo-user` account when offline
+3. **Dual Storage**: Firestore (online) + localStorage (offline) with seamless sync
+4. **Design IDs**: Online designs use Firestore IDs, offline designs prefixed with `local-`
+
+### Rate Limiting
+
+- Tracked in Firestore `users/{uid}/usage/dailyCalls`
+- Fallback to localStorage when offline: `dobby-usage-{uid}`
+- Daily reset at midnight based on `lastReset` timestamp
+
+### Firebase Configuration
+
+Required collections:
+- `users/{uid}` - User profile, tier, usage stats
+- `designs/{id}` - Saved fabric designs with `userId` field
+
+Firestore rules example:
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+    match /designs/{designId} {
+      allow read, write: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+  }
+}
+```
 
 ## License
 

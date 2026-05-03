@@ -12,7 +12,8 @@ const WEAVES = [
 
 export default function Sidebar({
   state, dispatch, className='',
-  gallery, galleryActiveId, onSave, onLoad, onRemove, onRename
+  gallery, galleryActiveId, onSave, onLoad, onRemove, onRename,
+  galleryLoading, canSaveMore, maxDesigns
 }) {
   return (
     <aside className={`sidebar ${className}`}>
@@ -23,7 +24,10 @@ export default function Sidebar({
         onSave={onSave}
         onLoad={onLoad}
         onRemove={onRemove}
-        onRename={onRename}/>
+        onRename={onRename}
+        loading={galleryLoading}
+        canSaveMore={canSaveMore}
+        maxDesigns={maxDesigns}/>
       <RegistrySearch dispatch={dispatch}/>
 
       <div className="section">

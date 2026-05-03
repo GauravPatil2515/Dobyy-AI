@@ -1,14 +1,21 @@
 import { useState, useEffect } from 'react'
 import { useFabricState } from './hooks/useFabricState.js'
-import { useGallery } from './hooks/useGallery.js'
+import { useFirestoreGallery } from './hooks/useFirestoreGallery.js'
+import { useAuth } from './contexts/AuthContext.jsx'
+import { useSubscription } from './contexts/SubscriptionContext.jsx'
 import { decodeState } from './utils/shareUtils.js'
 import Header       from './components/Header.jsx'
 import Sidebar      from './components/Sidebar.jsx'
 import FabricCanvas from './components/FabricCanvas.jsx'
 import ChatPanel    from './components/ChatPanel.jsx'
 import LandingPage  from './components/LandingPage.jsx'
+import LoginPage    from './components/LoginPage.jsx'
+import UpgradeModal from './components/UpgradeModal.jsx'
 
 export default function App() {
+  const { isAuthenticated, loading: authLoading } = useAuth()
+  const { canMakeApiCall, getRemainingCalls, isPro, subscription } = useSubscription()
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [showLanding, setShowLanding] = useState(
     () => !sessionStorage.getItem('dobby-entered')
   )
@@ -28,7 +35,16 @@ export default function App() {
     undo, redo, canUndo, canRedo
   } = useFabricState()
 
-  const { gallery, activeId: galleryActiveId, save, load, remove, rename } = useGallery(state, dispatch)
+  const { 
+    gallery, 
+    activeId: galleryActiveId, 
+    loading: galleryLoading,
+    save, 
+    load, 
+    remove, 
+    rename,
+    canSaveMore 
+  } = useFirestoreGallery(state, dispatch)
 
   useEffect(() => {
     document.documentElement.dataset.theme = state.theme
@@ -87,6 +103,38 @@ export default function App() {
     setShowLanding(false)
   }
 
+  // Show loading state while auth initializes
+  if (authLoading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--bg, #f8f7f5)'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: '3px solid #e5e7eb',
+            borderTopColor: '#0f3460',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 16px'
+          }} />
+          <p style={{ color: '#6b7280' }}>Loading...</p>
+        </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    )
+  }
+
+  // Require authentication
+  if (!isAuthenticated) {
+    return <LoginPage />
+  }
+
   return (
     <>
       {showLanding && <LandingPage onEnter={handleEnter}/>}
@@ -116,7 +164,10 @@ export default function App() {
               onSave={save}
               onLoad={load}
               onRemove={remove}
-              onRename={rename}/>
+              onRename={rename}
+              galleryLoading={galleryLoading}
+              canSaveMore={canSaveMore}
+              maxDesigns={subscription.maxSavedDesigns}/>
             <div
               className="resize-handle resize-handle-right"
               onMouseDown={() => {
@@ -139,10 +190,23 @@ export default function App() {
             <ChatPanel
               state={state}
               onPrompt={processPrompt}
-              loading={loading}/>
+              loading={loading}
+              onLimitExceeded={() => setShowUpgradeModal(true)}
+              remainingCalls={getRemainingCalls()}
+              isPro={isPro}/>
           </div>
         </div>
       </div>
+
+      {showUpgradeModal && (
+        <UpgradeModal
+          onClose={() => setShowUpgradeModal(false)}
+          onUpgrade={() => {
+            // Navigate to Stripe or payment page
+            window.open('https://stripe.com/payments', '_blank')
+          }}
+        />
+      )}
     </>
   )
 }

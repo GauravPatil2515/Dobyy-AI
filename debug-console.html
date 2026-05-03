@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Analysis Debug Console</title>
+  <style>
+    body {
+      font-family: 'Monaco', 'Courier New', monospace;
+      background: #0d0b09;
+      color: #e8e0d4;
+      padding: 20px;
+      margin: 0;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    h1 { 
+      color: #ffcc00;
+      border-bottom: 2px solid #ffcc00;
+      padding-bottom: 10px;
+    }
+    
+    .panel {
+      background: #1a1815;
+      border: 1px solid #3a3830;
+      border-radius: 6px;
+      padding: 15px;
+      margin: 15px 0;
+    }
+    
+    .input-section {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 10px 0;
+    }
+    
+    input[type="file"],
+    input[type="text"],
+    textarea {
+      background: #252220;
+      color: #e8e0d4;
+      border: 1px solid #3a3830;
+      padding: 8px;
+      border-radius: 4px;
+      font-family: inherit;
+    }
+    
+    input[type="text"] {
+      flex: 1;
+      min-width: 200px;
+    }
+    
+    textarea {
+      width: 100%;
+      height: 150px;
+      resize: vertical;
+    }
+    
+    button {
+      background: #ffcc00;
+      color: #0d0b09;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      font-family: inherit;
+    }
+    
+    button:hover { opacity: 0.8; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    
+    .output {
+      background: #141210;
+      border: 1px solid #3a3830;
+      border-radius: 4px;
+      padding: 12px;
+      margin: 10px 0;
+      font-size: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    
+    .log-entry {
+      margin: 5px 0;
+      padding: 5px 0;
+      border-bottom: 1px solid #3a3830;
+    }
+    
+    .log-error { color: #cc2211; }
+    .log-success { color: #5c7a5a; }
+    .log-warning { color: #ffcc00; }
+    .log-info { color: #8a8070; }
+    
+    .image-preview {
+      max-width: 200px;
+      max-height: 200px;
+      border: 1px solid #3a3830;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+      margin: 10px 0;
+    }
+    
+    .stat {
+      background: #252220;
+      border: 1px solid #3a3830;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    
+    .stat-label { color: #8a8070; font-size: 11px; }
+    .stat-value { color: #ffcc00; font-size: 16px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Image Analysis Debug Console</h1>
+    
+    <div class="panel">
+      <h2 style="margin-top: 0; color: #ffcc00;">Upload Image</h2>
+      <div class="input-section">
+        <input type="file" id="imageInput" accept="image/*">
+        <button onclick="handleImageSelect()">Analyze Image</button>
+        <button onclick="clearLogs()">Clear Logs</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 style="color: #ffcc00;">Image Preview</h2>
+      <img id="preview" class="image-preview" style="display:none;">
+      <div id="previewInfo"></div>
+    </div>
+
+    <div class="panel">
+      <h2 style="color: #ffcc00;">Processing Stats</h2>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-label">Image Size</div>
+          <div class="stat-value" id="stat-size">-</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Resized To</div>
+          <div class="stat-value" id="stat-resized">-</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Colors Extracted</div>
+          <div class="stat-value" id="stat-colors">-</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Processing Time</div>
+          <div class="stat-value" id="stat-time">-</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 style="color: #ffcc00;">Debug Output</h2>
+      <div id="logs" class="output"></div>
+    </div>
+
+    <div class="panel">
+      <h2 style="color: #ffcc00;">Extracted Colors</h2>
+      <div id="colorOutput"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { fileToBase64, analyzeImageWithGroq, localKMeansExtract, buildAnalysisMessage } from './src/utils/imageAnalyzer.js';
+
+    const logsDiv = document.getElementById('logs');
+    let logCount = 0;
+
+    function log(level, message, details = '') {
+      logCount++;
+      const entry = document.createElement('div');
+      entry.className = `log-entry log-${level}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] [${level.toUpperCase()}] ${message}`;
+      if (details) entry.textContent += `\n${details}`;
+      logsDiv.appendChild(entry);
+      logsDiv.scrollTop = logsDiv.scrollHeight;
+      
+      if (logCount > 50) {
+        logsDiv.removeChild(logsDiv.firstChild);
+      }
+    }
+
+    window.clearLogs = () => {
+      logsDiv.innerHTML = '';
+      logCount = 0;
+      log('info', 'Logs cleared');
+    };
+
+    document.getElementById('imageInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const preview = document.getElementById('preview');
+        preview.src = event.target.result;
+        preview.style.display = 'block';
+
+        const size = (file.size / 1024).toFixed(2);
+        document.getElementById('previewInfo').innerHTML = `
+          <div class="stat-info">
+            <div><strong>Name:</strong> ${file.name}</div>
+            <div><strong>Size:</strong> ${size} KB</div>
+            <div><strong>Type:</strong> ${file.type}</div>
+          </div>
+        `;
+        document.getElementById('stat-size').textContent = `${size} KB`;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    window.handleImageSelect = async () => {
+      const fileInput = document.getElementById('imageInput');
+      const file = fileInput.files[0];
+
+      if (!file) {
+        log('error', 'No file selected');
+        return;
+      }
+
+      log('info', `Processing: ${file.name}`);
+      const startTime = performance.now();
+
+      try {
+        // Step 1: Resize
+        log('info', 'Step 1: Resizing image...');
+        const base64 = await fileToBase64(file);
+        log('success', 'Image resized', `Base64 length: ${base64.length}`);
+        document.getElementById('stat-resized').textContent = 'Done';
+
+        // Step 2: K-means fallback
+        log('info', 'Step 2: Extracting colors (K-means)...');
+        const kmeansColors = await localKMeansExtract(base64);
+        log('success', `K-means: ${kmeansColors.length} colors`, 
+          kmeansColors.map(c => `${c.c}×${c.n}t`).join(', '));
+        document.getElementById('stat-colors').textContent = kmeansColors.length;
+
+        // Step 3: Vision API
+        log('info', 'Step 3: Calling Vision API...');
+        const result = await analyzeImageWithGroq(base64, (progress) => {
+          if (progress.error) {
+            log('warning', `API Progress: ${progress.error}`, progress.message);
+          } else if (progress.status) {
+            log('info', `API: ${progress.status}`);
+          }
+        });
+
+        log('success', 'Vision API result received', 
+          `Source: ${result.source}, Colors: ${result.sett.length}, Confidence: ${result.confidence}%`);
+
+        // Display results
+        const colors = document.createElement('div');
+        result.sett.forEach(s => {
+          const swatch = document.createElement('div');
+          swatch.style.cssText = `
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            background: ${s.c};
+            border: 1px solid #3a3830;
+            border-radius: 4px;
+            margin: 5px;
+            position: relative;
+          `;
+          swatch.title = `${s.c} × ${s.n}t`;
+          colors.appendChild(swatch);
+        });
+        document.getElementById('colorOutput').innerHTML = '';
+        document.getElementById('colorOutput').appendChild(colors);
+
+        // Display analysis message
+        const msg = buildAnalysisMessage(
+          result.sett,
+          result.weave,
+          result.confidence,
+          result.description
+        );
+        log('info', 'Analysis Complete', msg);
+
+        const timeTaken = (performance.now() - startTime).toFixed(1);
+        document.getElementById('stat-time').textContent = `${timeTaken}ms`;
+        log('success', `✅ Complete in ${timeTaken}ms`);
+
+      } catch (err) {
+        log('error', `❌ ${err.message}`, err.stack);
+        document.getElementById('stat-time').textContent = 'Failed';
+      }
+    };
+
+    log('info', 'Image analyzer loaded and ready');
+  </script>
+</body>
+</html>

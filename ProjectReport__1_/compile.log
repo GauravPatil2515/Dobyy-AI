@@ -1,0 +1,467 @@
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex)
+ restricted \write18 enabled.
+entering extended mode
+(./main.tex
+LaTeX2e <2023-11-01> patch level 1
+L3 programming layer <2024-01-22>
+(/usr/share/texlive/texmf-dist/tex/latex/base/report.cls
+Document Class: report 2023/05/17 v1.4n Standard LaTeX document class
+(/usr/share/texlive/texmf-dist/tex/latex/base/size12.clo))
+(/usr/share/texlive/texmf-dist/tex/latex/float/float.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/base/inputenc.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/psnfss/times.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/geometry/geometry.sty
+(/usr/share/texlive/texmf-dist/tex/latex/graphics/keyval.sty)
+(/usr/share/texlive/texmf-dist/tex/generic/iftex/ifvtex.sty
+(/usr/share/texlive/texmf-dist/tex/generic/iftex/iftex.sty)))
+(/usr/share/texlive/texmf-dist/tex/latex/graphics/graphicx.sty
+(/usr/share/texlive/texmf-dist/tex/latex/graphics/graphics.sty
+(/usr/share/texlive/texmf-dist/tex/latex/graphics/trig.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/graphics-cfg/graphics.cfg)
+(/usr/share/texlive/texmf-dist/tex/latex/graphics-def/pdftex.def)))
+(/usr/share/texlive/texmf-dist/tex/latex/fancyhdr/fancyhdr.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/setspace/setspace.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amsmath.sty
+For additional information on amsmath, use the `?' option.
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amstext.sty
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amsgen.sty))
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amsbsy.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amsopn.sty))
+(/usr/share/texlive/texmf-dist/tex/latex/base/fontenc.sty
+(/usr/share/texlive/texmf-dist/tex/latex/psnfss/t1ptm.fd))
+(/usr/share/texlive/texmf-dist/tex/latex/acronym/acronym.sty
+(/usr/share/texlive/texmf-dist/tex/latex/bigfoot/suffix.sty)
+(/usr/share/texlive/texmf-dist/tex/generic/xstring/xstring.sty
+(/usr/share/texlive/texmf-dist/tex/generic/xstring/xstring.tex)))
+(/usr/share/texlive/texmf-dist/tex/latex/titlesec/titlesec.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/microtype/microtype.sty
+(/usr/share/texlive/texmf-dist/tex/latex/etoolbox/etoolbox.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/microtype/microtype-pdftex.def)
+(/usr/share/texlive/texmf-dist/tex/latex/microtype/microtype.cfg))
+(/usr/share/texlive/texmf-dist/tex/latex/wrapfig/wrapfig.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/tocloft/tocloft.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/booktabs/booktabs.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/tools/array.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/hyperref.sty
+(/usr/share/texlive/texmf-dist/tex/latex/kvsetkeys/kvsetkeys.sty)
+(/usr/share/texlive/texmf-dist/tex/generic/kvdefinekeys/kvdefinekeys.sty)
+(/usr/share/texlive/texmf-dist/tex/generic/pdfescape/pdfescape.sty
+(/usr/share/texlive/texmf-dist/tex/generic/ltxcmds/ltxcmds.sty)
+(/usr/share/texlive/texmf-dist/tex/generic/pdftexcmds/pdftexcmds.sty
+(/usr/share/texlive/texmf-dist/tex/generic/infwarerr/infwarerr.sty)))
+(/usr/share/texlive/texmf-dist/tex/latex/hycolor/hycolor.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/auxhook/auxhook.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/nameref.sty
+(/usr/share/texlive/texmf-dist/tex/latex/refcount/refcount.sty)
+(/usr/share/texlive/texmf-dist/tex/generic/gettitlestring/gettitlestring.sty
+(/usr/share/texlive/texmf-dist/tex/latex/kvoptions/kvoptions.sty)))
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/pd1enc.def)
+(/usr/share/texlive/texmf-dist/tex/generic/intcalc/intcalc.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/puenc.def)
+(/usr/share/texlive/texmf-dist/tex/latex/url/url.sty)
+(/usr/share/texlive/texmf-dist/tex/generic/bitset/bitset.sty
+(/usr/share/texlive/texmf-dist/tex/generic/bigintcalc/bigintcalc.sty))
+(/usr/share/texlive/texmf-dist/tex/latex/base/atbegshi-ltx.sty))
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/hpdftex.def
+(/usr/share/texlive/texmf-dist/tex/latex/base/atveryend-ltx.sty)
+(/usr/share/texlive/texmf-dist/tex/latex/rerunfilecheck/rerunfilecheck.sty
+(/usr/share/texlive/texmf-dist/tex/generic/uniquecounter/uniquecounter.sty)))
+(/usr/share/texlive/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def)
+(./main.aux (./pages/titlepage.aux) (./pages/certificate.aux)
+(./pages/project_report_approval.aux) (./pages/declaration.aux)
+(./pages/acknowledgement.aux) (./pages/abstract.aux)
+(./pages/list_of_abbrevations.aux) (./chapters/Introduction.aux)
+(./chapters/Literature_survey.aux) (./chapters/Proposed_System.aux)
+(./chapters/Design_and_methodology.aux) (./chapters/result_and_discussion.aux)
+(./chapters/Conclusion.aux) (./chapters/P.aux))
+*geometry* driver: auto-detecting
+*geometry* detected driver: pdftex
+(/usr/share/texlive/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
+[Loading MPS to PDF converter (version 2006.09.02).]
+) (/usr/share/texlive/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty
+(/usr/share/texlive/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg))
+(/usr/share/texlive/texmf-dist/tex/latex/microtype/mt-ptm.cfg) (./main.out)
+(./main.out) (./pages/titlepage.tex
+(/usr/share/texlive/texmf-dist/tex/latex/microtype/mt-cmr.cfg) [1{/var/lib/texm
+f/fonts/map/pdftex/updmap/pdftex.map}{/usr/share/texlive/texmf-dist/fonts/enc/d
+vips/base/8r.enc} <./image.png>]) (./pages/certificate.tex)
+pdfTeX warning (ext4): destination with the same identifier (name{page.i}) has 
+been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.33 \include{pages/certificate}
+                                 [1] (./pages/project_report_approval.tex
+(/usr/share/texlive/texmf-dist/tex/latex/psnfss/ts1ptm.fd)) [2]
+(./pages/declaration.tex) [3] (./pages/acknowledgement.tex) [4]
+(./pages/abstract.tex (/usr/share/texlive/texmf-dist/tex/latex/psnfss/t1pcr.fd)
+) [5] [6] (./main.toc [7] [8]) [9] (./main.lof) [10]
+(./pages/list_of_abbrevations.tex
+
+LaTeX Warning: Hyper reference `acro:AI' on page xi undefined on input line 5.
+
+
+LaTeX Warning: Hyper reference `acro:AI' on page xi undefined on input line 5.
+
+
+LaTeX Warning: Hyper reference `acro:ML' on page xi undefined on input line 6.
+
+
+LaTeX Warning: Hyper reference `acro:ML' on page xi undefined on input line 6.
+
+
+LaTeX Warning: Hyper reference `acro:LLM' on page xi undefined on input line 7.
+
+
+
+LaTeX Warning: Hyper reference `acro:LLM' on page xi undefined on input line 7.
+
+
+
+LaTeX Warning: Hyper reference `acro:NLP' on page xi undefined on input line 8.
+
+
+
+LaTeX Warning: Hyper reference `acro:NLP' on page xi undefined on input line 8.
+
+
+
+LaTeX Warning: Hyper reference `acro:API' on page xi undefined on input line 9.
+
+
+
+LaTeX Warning: Hyper reference `acro:API' on page xi undefined on input line 9.
+
+
+
+LaTeX Warning: Hyper reference `acro:WIF' on page xi undefined on input line 10
+.
+
+
+LaTeX Warning: Hyper reference `acro:WIF' on page xi undefined on input line 10
+.
+
+
+LaTeX Warning: Hyper reference `acro:EPI' on page xi undefined on input line 11
+.
+
+
+LaTeX Warning: Hyper reference `acro:EPI' on page xi undefined on input line 11
+.
+
+
+LaTeX Warning: Hyper reference `acro:PPI' on page xi undefined on input line 12
+.
+
+
+LaTeX Warning: Hyper reference `acro:PPI' on page xi undefined on input line 12
+.
+
+
+LaTeX Warning: Hyper reference `acro:CAD' on page xi undefined on input line 13
+.
+
+
+LaTeX Warning: Hyper reference `acro:CAD' on page xi undefined on input line 13
+.
+
+
+LaTeX Warning: Hyper reference `acro:CAM' on page xi undefined on input line 14
+.
+
+
+LaTeX Warning: Hyper reference `acro:CAM' on page xi undefined on input line 14
+.
+
+
+LaTeX Warning: Hyper reference `acro:UI' on page xi undefined on input line 15.
+
+
+
+LaTeX Warning: Hyper reference `acro:UI' on page xi undefined on input line 15.
+
+
+
+LaTeX Warning: Hyper reference `acro:UX' on page xi undefined on input line 16.
+
+
+
+LaTeX Warning: Hyper reference `acro:UX' on page xi undefined on input line 16.
+
+
+
+LaTeX Warning: Hyper reference `acro:PDF' on page xi undefined on input line 17
+.
+
+
+LaTeX Warning: Hyper reference `acro:PDF' on page xi undefined on input line 17
+.
+
+
+LaTeX Warning: Hyper reference `acro:PNG' on page xi undefined on input line 18
+.
+
+
+LaTeX Warning: Hyper reference `acro:PNG' on page xi undefined on input line 18
+.
+
+
+LaTeX Warning: Hyper reference `acro:JSON' on page xi undefined on input line 1
+9.
+
+
+LaTeX Warning: Hyper reference `acro:JSON' on page xi undefined on input line 1
+9.
+
+
+LaTeX Warning: Hyper reference `acro:HTTP' on page xi undefined on input line 2
+0.
+
+
+LaTeX Warning: Hyper reference `acro:HTTP' on page xi undefined on input line 2
+0.
+
+
+LaTeX Warning: Hyper reference `acro:REST' on page xi undefined on input line 2
+1.
+
+
+LaTeX Warning: Hyper reference `acro:REST' on page xi undefined on input line 2
+1.
+
+
+LaTeX Warning: Hyper reference `acro:GPU' on page xi undefined on input line 22
+.
+
+
+LaTeX Warning: Hyper reference `acro:GPU' on page xi undefined on input line 22
+.
+
+
+LaTeX Warning: Hyper reference `acro:CSS' on page xi undefined on input line 23
+.
+
+
+LaTeX Warning: Hyper reference `acro:CSS' on page xi undefined on input line 23
+.
+
+[11]
+
+LaTeX Warning: Hyper reference `acro:HTML' on page xii undefined on input line 
+24.
+
+
+LaTeX Warning: Hyper reference `acro:HTML' on page xii undefined on input line 
+24.
+
+
+LaTeX Warning: Hyper reference `acro:JS' on page xii undefined on input line 25
+.
+
+
+LaTeX Warning: Hyper reference `acro:JS' on page xii undefined on input line 25
+.
+
+
+LaTeX Warning: Hyper reference `acro:URL' on page xii undefined on input line 2
+6.
+
+
+LaTeX Warning: Hyper reference `acro:URL' on page xii undefined on input line 2
+6.
+
+
+LaTeX Warning: Hyper reference `acro:HOD' on page xii undefined on input line 2
+7.
+
+
+LaTeX Warning: Hyper reference `acro:HOD' on page xii undefined on input line 2
+7.
+
+
+LaTeX Warning: Hyper reference `acro:BE' on page xii undefined on input line 28
+.
+
+
+LaTeX Warning: Hyper reference `acro:BE' on page xii undefined on input line 28
+.
+
+
+LaTeX Warning: Hyper reference `acro:RGB' on page xii undefined on input line 2
+9.
+
+
+LaTeX Warning: Hyper reference `acro:RGB' on page xii undefined on input line 2
+9.
+
+
+LaTeX Warning: Hyper reference `acro:RAF' on page xii undefined on input line 3
+0.
+
+
+LaTeX Warning: Hyper reference `acro:RAF' on page xii undefined on input line 3
+0.
+
+
+LaTeX Warning: Hyper reference `acro:CDN' on page xii undefined on input line 3
+1.
+
+
+LaTeX Warning: Hyper reference `acro:CDN' on page xii undefined on input line 3
+1.
+
+
+LaTeX Warning: Hyper reference `acro:SPA' on page xii undefined on input line 3
+2.
+
+
+LaTeX Warning: Hyper reference `acro:SPA' on page xii undefined on input line 3
+2.
+
+
+LaTeX Warning: Hyper reference `acro:OCR' on page xii undefined on input line 3
+3.
+
+
+LaTeX Warning: Hyper reference `acro:OCR' on page xii undefined on input line 3
+3.
+
+
+LaTeX Warning: Hyper reference `acro:3D' on page xii undefined on input line 34
+.
+
+
+LaTeX Warning: Hyper reference `acro:3D' on page xii undefined on input line 34
+.
+
+
+LaTeX Warning: Hyper reference `acro:K-means' on page xii undefined on input li
+ne 35.
+
+
+LaTeX Warning: Hyper reference `acro:K-means' on page xii undefined on input li
+ne 35.
+
+
+LaTeX Warning: Hyper reference `acro:React' on page xii undefined on input line
+ 36.
+
+
+LaTeX Warning: Hyper reference `acro:React' on page xii undefined on input line
+ 36.
+
+
+LaTeX Warning: Hyper reference `acro:Vite' on page xii undefined on input line 
+37.
+
+
+LaTeX Warning: Hyper reference `acro:Vite' on page xii undefined on input line 
+37.
+
+) [12] (./chapters/Introduction.tex
+Chapter 1.
+[1] [2] [3] [4]) [5] (./chapters/Literature_survey.tex
+Chapter 2.
+
+LaTeX Warning: Citation `ref1' on page 6 undefined on input line 8.
+
+
+LaTeX Warning: Citation `ref2' on page 6 undefined on input line 8.
+
+[6] [7]
+
+LaTeX Warning: Citation `ref3' on page 8 undefined on input line 28.
+
+
+LaTeX Warning: Citation `ref4' on page 8 undefined on input line 28.
+
+[8]
+
+LaTeX Warning: Citation `ref5' on page 9 undefined on input line 48.
+
+
+LaTeX Warning: Citation `ref6' on page 9 undefined on input line 48.
+
+[9]
+
+LaTeX Warning: Citation `ref8' on page 10 undefined on input line 68.
+
+
+LaTeX Warning: Citation `ref7' on page 10 undefined on input line 68.
+
+[10] [11]
+
+LaTeX Warning: Citation `ref9' on page 12 undefined on input line 88.
+
+
+LaTeX Warning: Citation `ref10' on page 12 undefined on input line 88.
+
+[12]
+
+LaTeX Warning: Citation `ref11' on page 13 undefined on input line 108.
+
+
+LaTeX Warning: Citation `ref12' on page 13 undefined on input line 108.
+
+[13]) [14] (./chapters/Proposed_System.tex
+Chapter 3.
+[15] [16] [17] [18]
+
+! LaTeX Error: File `architecture' not found.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.43 ...aphics[width=0.85\textwidth]{architecture}
+                                                  
+) [19] (./chapters/Design_and_methodology.tex
+Chapter 4.
+
+Overfull \hbox (218.07414pt too wide) in paragraph at lines 11--26
+ [][] 
+[20] [21] [22] [23] [24]) [25] (./chapters/result_and_discussion.tex
+Chapter 5.
+[26]
+
+! LaTeX Error: File `drape_view' not found.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.21 ...graphics[width=0.85\textwidth]{drape_view}
+                                                  
+[27 <./figures/studio_ui.png>]) [28] (./chapters/Conclusion.tex
+Chapter 6.
+[29] [30]) [31]
+No file main.bbl.
+(./chapters/P.tex
+Underfull \hbox (badness 10000) in paragraph at lines 3--8
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 11--12
+
+) [32] (./main.aux (./pages/titlepage.aux) (./pages/certificate.aux)
+(./pages/project_report_approval.aux) (./pages/declaration.aux)
+(./pages/acknowledgement.aux) (./pages/abstract.aux)
+(./pages/list_of_abbrevations.aux) (./chapters/Introduction.aux)
+(./chapters/Literature_survey.aux) (./chapters/Proposed_System.aux)
+(./chapters/Design_and_methodology.aux) (./chapters/result_and_discussion.aux)
+(./chapters/Conclusion.aux) (./chapters/P.aux))
+
+LaTeX Warning: There were undefined references.
+
+ )
+(\end occurred inside a group at level 1)
+
+### semi simple group (level 1) entered at line 25 (\begingroup)
+### bottom level
+(see the transcript file for additional information)</usr/share/texlive/texmf-d
+ist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/share/texlive/texmf-dist/fo
+nts/type1/public/amsfonts/cm/cmr12.pfb></usr/share/texlive/texmf-dist/fonts/typ
+e1/public/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw
+/courier/ucrr8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmb8a
+.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/shar
+e/texlive/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
+Output written on main.pdf (45 pages, 983513 bytes).
+Transcript written on main.log.

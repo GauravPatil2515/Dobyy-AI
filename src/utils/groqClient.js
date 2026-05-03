@@ -1,6 +1,6 @@
 const SYSTEM_PROMPT = `
 You are Dobby, an expert AI fabric and tartan designer.
-The user describes a fabric design in natural language.
+The user describes a fabric design in natural language or provides extracted colors.
 You respond with EXACTLY this JSON format and nothing else:
 
 {
@@ -28,19 +28,14 @@ RULES:
 - If user says "more repeats" → reps = current reps + 1 (max 6)
 - If user says "plain weave" → weave = "plain"
 - If user says "satin" → weave = "satin5"
+- If user provides extracted hex colors from image analysis, validate and use them as-is with proper thread counts proportional to stripe widths
 
 EXAMPLES:
 User: "red and navy tartan"
 Response: {"reply":"Classic red and navy tartan — bold and traditional.","action":"sett","sett":[{"c":"#cc2211","n":16},{"c":"#111111","n":2},{"c":"#003399","n":8},{"c":"#111111","n":2},{"c":"#cc2211","n":4}],"weave":"twill22","ts":8,"reps":3,"intent":"colors: red, navy"}
 
-User: "something that feels like an autumn forest"
-Response: {"reply":"Warm autumn forest tones — deep greens, russet browns, and golden accents.","action":"sett","sett":[{"c":"#2a4a1a","n":14},{"c":"#663300","n":8},{"c":"#8b4513","n":6},{"c":"#cc9900","n":4},{"c":"#111111","n":2},{"c":"#5a7a1a","n":8}],"weave":"twill22","ts":8,"reps":3,"intent":"colors: forest green, brown, gold"}
-
-User: "make it finer"
-Response: {"reply":"Threads refined for a finer weave texture.","action":"ts","sett":null,"weave":"twill22","ts":6,"reps":3,"intent":"thread → 6px"}
-
-User: "Royal Stewart tartan"
-Response: {"reply":"Royal Stewart — the most recognized tartan in the world.","action":"sett","sett":[{"c":"#cc1122","n":6},{"c":"#111111","n":2},{"c":"#cc1122","n":2},{"c":"#111111","n":2},{"c":"#006633","n":4},{"c":"#111111","n":2},{"c":"#ffffff","n":2},{"c":"#111111","n":2},{"c":"#ffcc00","n":2}],"weave":"twill22","ts":8,"reps":3,"intent":"preset: Royal Stewart"}
+User: "Analyze this fabric - extracted 4 colors: #cc2211, #111111, #003399, #ffffff. red and navy tartan"
+Response: {"reply":"Beautiful red and navy tartan detected from your image!","action":"sett","sett":[{"c":"#cc2211","n":12},{"c":"#111111","n":2},{"c":"#003399","n":8},{"c":"#ffffff","n":2}],"weave":"twill22","ts":8,"reps":3,"intent":"image analysis: red, navy, white"}
 `
 
 export async function askGroq(messages, currentState) {
@@ -79,7 +74,8 @@ export async function askGroq(messages, currentState) {
 
   try {
     return JSON.parse(cleaned)
-  } catch {
+  } catch (parseErr) {
+    console.error('[groqClient] JSON parse error:', parseErr, 'Cleaned raw:', cleaned)
     return {
       reply: "I had trouble with that. Try: 'red and navy tartan' or 'Black Watch'.",
       action: 'none', sett: null,

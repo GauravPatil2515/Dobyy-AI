@@ -1,0 +1,63 @@
+\contentsline {chapter}{Certificate}{i}{chapter*.1}%
+\contentsline {chapter}{Project Report Approval}{ii}{chapter*.2}%
+\contentsline {chapter}{Declaration}{iii}{chapter*.3}%
+\contentsline {chapter}{Acknowledgement}{iv}{chapter*.4}%
+\contentsline {chapter}{Abstract}{v}{chapter*.5}%
+\contentsline {chapter}{List of Abbreviations}{xi}{chapter*.6}%
+\contentsline {chapter}{\numberline {1}Introduction}{1}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Introduction}{1}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Need of Project}{2}{section.1.2}%
+\contentsline {section}{\numberline {1.3}Scope}{3}{section.1.3}%
+\contentsline {section}{\numberline {1.4}Organization of the Report}{4}{section.1.4}%
+\contentsline {chapter}{\numberline {2}Literature Survey}{6}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Computer-Aided Design in the Textile Industry}{6}{section.2.1}%
+\contentsline {subsection}{\numberline {2.1.1}Survey of Existing System}{6}{subsection.2.1.1}%
+\contentsline {subsection}{\numberline {2.1.2}Research Gaps}{7}{subsection.2.1.2}%
+\contentsline {subsection}{\numberline {2.1.3}Problem Definition}{7}{subsection.2.1.3}%
+\contentsline {subsection}{\numberline {2.1.4}Objectives}{7}{subsection.2.1.4}%
+\contentsline {section}{\numberline {2.2}Natural Language Processing for Creative Design}{8}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}Survey of Existing System}{8}{subsection.2.2.1}%
+\contentsline {subsection}{\numberline {2.2.2}Research Gaps}{8}{subsection.2.2.2}%
+\contentsline {subsection}{\numberline {2.2.3}Problem Definition}{8}{subsection.2.2.3}%
+\contentsline {subsection}{\numberline {2.2.4}Objectives}{9}{subsection.2.2.4}%
+\contentsline {section}{\numberline {2.3}Large Language Models in Domain-Specific Applications}{9}{section.2.3}%
+\contentsline {subsection}{\numberline {2.3.1}Survey of Existing System}{9}{subsection.2.3.1}%
+\contentsline {subsection}{\numberline {2.3.2}Research Gaps}{10}{subsection.2.3.2}%
+\contentsline {subsection}{\numberline {2.3.3}Problem Definition}{10}{subsection.2.3.3}%
+\contentsline {subsection}{\numberline {2.3.4}Objectives}{10}{subsection.2.3.4}%
+\contentsline {section}{\numberline {2.4}Weave Structure Mathematics and Tartan Sett Systems}{11}{section.2.4}%
+\contentsline {subsection}{\numberline {2.4.1}Survey of Existing System}{11}{subsection.2.4.1}%
+\contentsline {subsection}{\numberline {2.4.2}Research Gaps}{11}{subsection.2.4.2}%
+\contentsline {subsection}{\numberline {2.4.3}Problem Definition}{11}{subsection.2.4.3}%
+\contentsline {subsection}{\numberline {2.4.4}Objectives}{11}{subsection.2.4.4}%
+\contentsline {section}{\numberline {2.5}AI and Technology for Indian Handloom Sector}{12}{section.2.5}%
+\contentsline {subsection}{\numberline {2.5.1}Survey of Existing System}{12}{subsection.2.5.1}%
+\contentsline {subsection}{\numberline {2.5.2}Research Gaps}{12}{subsection.2.5.2}%
+\contentsline {subsection}{\numberline {2.5.3}Problem Definition}{13}{subsection.2.5.3}%
+\contentsline {subsection}{\numberline {2.5.4}Objectives}{13}{subsection.2.5.4}%
+\contentsline {chapter}{\numberline {3}Proposed System}{14}{chapter.3}%
+\contentsline {section}{\numberline {3.1}System Overview}{14}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Frontend Architecture}{14}{section.3.2}%
+\contentsline {section}{\numberline {3.3}AI Design Pipeline}{15}{section.3.3}%
+\contentsline {section}{\numberline {3.4}Fabric Rendering Engine}{16}{section.3.4}%
+\contentsline {section}{\numberline {3.5}Export System}{16}{section.3.5}%
+\contentsline {section}{\numberline {3.6}Production Specifications Module}{17}{section.3.6}%
+\contentsline {chapter}{\numberline {4}Design and Methodology}{19}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Design Details}{19}{section.4.1}%
+\contentsline {subsection}{\numberline {4.1.1}Technology Stack}{19}{subsection.4.1.1}%
+\contentsline {subsection}{\numberline {4.1.2}Tartan Presets and Design Library}{19}{subsection.4.1.2}%
+\contentsline {subsection}{\numberline {4.1.3}WIF Standard and Industry Compatibility}{20}{subsection.4.1.3}%
+\contentsline {section}{\numberline {4.2}Methodology}{20}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}Weave Matrix Generation}{21}{subsection.4.2.1}%
+\contentsline {subsection}{\numberline {4.2.2}Optical Color Mixing Algorithm}{22}{subsection.4.2.2}%
+\contentsline {subsection}{\numberline {4.2.3}AI Prompt Engineering}{22}{subsection.4.2.3}%
+\contentsline {section}{\numberline {4.3}Performance Results}{23}{section.4.3}%
+\contentsline {chapter}{\numberline {5}Result and Discussion}{24}{chapter.5}%
+\contentsline {section}{\numberline {5.1}System Output}{24}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Screenshots and Figures}{25}{section.5.2}%
+\contentsline {section}{\numberline {5.3}Comparative Analysis}{25}{section.5.3}%
+\contentsline {section}{\numberline {5.4}Discussion}{26}{section.5.4}%
+\contentsline {chapter}{\numberline {6}Conclusion}{27}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Conclusion}{27}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Future Scope}{28}{section.6.2}%
+\contentsline {chapter}{Bibliography}{31}{chapter*.7}%
