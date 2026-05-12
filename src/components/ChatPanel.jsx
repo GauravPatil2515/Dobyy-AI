@@ -3,18 +3,31 @@ import { useAuth } from '../contexts/AuthContext.jsx'
 import { useSubscription } from '../contexts/SubscriptionContext.jsx'
 import { fileToBase64, analyzeImageWithGroq, buildAnalysisMessage } from '../utils/imageAnalyzer'
 
-const CHIPS = [
-  'Royal Stewart', 'Black Watch', 'red and navy plaid',
-  'autumn forest tartan', 'ocean blues and white',
-  'make it finer', 'make it bolder', 'plain weave',
-  'more repeats', 'pastel spring colors'
-]
 const WEAVE_LABELS = {
-  twill22:'2/2 twill', twill21:'2/1 twill',
-  plain:'plain weave', satin5:'5-end satin'
+  twill22:'2/2 Twill', twill21:'2/1 Twill',
+  plain:'Plain Weave', satin5:'5-End Satin',
+  twill31:'3/1 Twill', basket2:'Basket Weave',
+  hopsack:'Hopsack'
 }
 
-export default function ChatPanel({ state, onPrompt, loading, onLimitExceeded, remainingCalls, isPro }) {
+// Generate context-aware chip suggestions based on current design state
+function getContextChips(state) {
+  const base = ['darker tones', 'lighter tones', 'complementary colors', 'muted palette']
+  const weaveChips = []
+  if (state.weave !== 'plain')   weaveChips.push('switch to plain weave')
+  if (state.weave !== 'twill22') weaveChips.push('2/2 twill')
+  if (state.weave !== 'satin5')  weaveChips.push('satin weave')
+  const settChips = []
+  if (state.reps < 6)            settChips.push('more repeats')
+  if (state.ts > 6)              settChips.push('make it finer')
+  if (state.ts < 16)             settChips.push('make it bolder')
+  if (state.sett.length < 6)    settChips.push('add more stripes')
+  const presets = ['Royal Stewart', 'Black Watch', 'autumn forest tartan', 'pastel spring']
+  // Interleave: context-first, then preset variety
+  return [...settChips.slice(0,2), ...weaveChips.slice(0,1), ...base.slice(0,2), ...presets.slice(0,3)].slice(0, 9)
+}
+
+export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitExceeded, remainingCalls, isPro }) {
   const { isAuthenticated } = useAuth()
   const { canMakeApiCall, incrementApiCall } = useSubscription()
   const [input,  setInput]  = useState('')
@@ -33,15 +46,14 @@ export default function ChatPanel({ state, onPrompt, loading, onLimitExceeded, r
 
   const send = async (text) => {
     if (!text.trim() || loading) return
-    
-    // Check rate limit before sending
+
     if (!canMakeApiCall()) {
-      setMsgs(m => [...m, { 
-        role:'user', 
-        text 
+      setMsgs(m => [...m, {
+        role:'user',
+        text
       }, {
         role:'ai',
-        text: "You've reached your daily limit of 5 free designs. Upgrade to Pro for 100 designs per day! ✨"
+        text: "You've reached your daily limit of 5 free designs. Upgrade to Pro for unlimited designs! ✨"
       }])
       setInput('')
       onLimitExceeded?.()
@@ -50,11 +62,7 @@ export default function ChatPanel({ state, onPrompt, loading, onLimitExceeded, r
 
     setMsgs(m => [...m, { role:'user', text }])
     setInput('')
-
-    // Show typing indicator
     setMsgs(m => [...m, { role:'ai', text:'...', isTyping: true }])
-
-    // Increment the counter
     await incrementApiCall()
 
     await onPrompt(text, ({ reply, intent }) => {
@@ -73,55 +81,49 @@ export default function ChatPanel({ state, onPrompt, loading, onLimitExceeded, r
     const reader = new FileReader()
     reader.onload = async (event) => {
       try {
-        // Show image in chat immediately
         const dataUrl = event.target?.result
-        setMsgs(m => [...m, { 
-          role:'user', 
-          text: '📷 Image uploaded', 
-          image: dataUrl 
+        setMsgs(m => [...m, {
+          role:'user',
+          text: '📷 Analyzing fabric…',
+          image: dataUrl
         }])
-        
-        // Show typing indicator
         setMsgs(m => [...m, { role:'ai', text:'...', isTyping: true }])
 
-        // Resize image and send to API
         const base64 = await fileToBase64(file)
-        
-        const result = await analyzeImageWithGroq(base64, (progress) => {
-          if (progress.error) {
-            console.warn('[ChatPanel] Analysis progress:', progress)
-          }
-        })
+        const result = await analyzeImageWithGroq(base64)
 
-        // Update sett in fabric state via onPrompt
+        // ✅ Apply extracted sett directly to canvas — no LLM round-trip
+        if (result.sett?.length > 0) {
+          dispatch({
+            type: 'APPLY',
+            newState: {
+              ...state,
+              sett: result.sett,
+              weave: result.weave || state.weave,
+              activePreset: -1,
+            }
+          })
+        }
+
+        const analysisMsg = buildAnalysisMessage(
+          result.sett,
+          result.weave,
+          result.confidence,
+          result.description
+        )
+
         setMsgs(m => {
           const filtered = m.filter(msg => !msg.isTyping)
-          const analysisMsg = buildAnalysisMessage(
-            result.sett,
-            result.weave,
-            result.confidence,
-            result.description
-          )
           return [...filtered, { role:'ai', text: analysisMsg }]
         })
-
-        // Apply the design to canvas
-        onPrompt(
-          `Analyze this fabric - extracted ${result.sett.length} colors: ${
-            result.sett.map(s => s.c).join(', ')
-          }. ${result.description}`,
-          ({ reply, intent }) => {
-            // Update fabric state with AI response
-            setIntent(intent)
-          }
-        )
+        setIntent('image analysis')
       } catch (err) {
         console.error('[ChatPanel] Image upload error:', err)
         setMsgs(m => {
           const filtered = m.filter(msg => !msg.isTyping)
-          return [...filtered, { 
-            role:'ai', 
-            text: '❌ Image analysis failed. Try a different image.' 
+          return [...filtered, {
+            role:'ai',
+            text: '❌ Image analysis failed. Try a clearer photo of the fabric.'
           }]
         })
       }
@@ -131,7 +133,8 @@ export default function ChatPanel({ state, onPrompt, loading, onLimitExceeded, r
   }
 
   const tsPercent  = ((state.ts - 4) / 18 * 100).toFixed(0)
-  const repPercent = ((state.reps - 1) / 5 * 100).toFixed(0)
+  const repPercent = ((state.reps - 1) / 11 * 100).toFixed(0)
+  const chips      = getContextChips(state)
 
   return (
     <div className="chat-panel">
@@ -142,9 +145,9 @@ export default function ChatPanel({ state, onPrompt, loading, onLimitExceeded, r
             <>
               Powered by Groq · llama3-70b
               {!isPro && (
-                <span style={{ 
-                  marginLeft: '8px', 
-                  padding: '2px 8px', 
+                <span style={{
+                  marginLeft: '8px',
+                  padding: '2px 8px',
                   background: remainingCalls <= 1 ? '#fee2e2' : '#fef3c7',
                   color: remainingCalls <= 1 ? '#dc2626' : '#92400e',
                   borderRadius: '4px',
@@ -155,9 +158,9 @@ export default function ChatPanel({ state, onPrompt, loading, onLimitExceeded, r
                 </span>
               )}
               {isPro && (
-                <span style={{ 
-                  marginLeft: '8px', 
-                  padding: '2px 8px', 
+                <span style={{
+                  marginLeft: '8px',
+                  padding: '2px 8px',
                   background: '#d1fae5',
                   color: '#065f46',
                   borderRadius: '4px',
@@ -218,7 +221,7 @@ export default function ChatPanel({ state, onPrompt, loading, onLimitExceeded, r
               ) : (
                 <>
                   {m.image && (
-                    <img src={m.image} alt="uploaded fabric" 
+                    <img src={m.image} alt="uploaded fabric"
                       style={{maxWidth: '100%', maxHeight: '160px', borderRadius: '6px', marginBottom: '6px', objectFit: 'cover'}}/>
                   )}
                   {m.text}
@@ -230,7 +233,7 @@ export default function ChatPanel({ state, onPrompt, loading, onLimitExceeded, r
       </div>
 
       <div className="chips">
-        {CHIPS.map(c => (
+        {chips.map(c => (
           <button key={c} className="chip"
             disabled={loading}
             onClick={() => send(c)}>{c}</button>

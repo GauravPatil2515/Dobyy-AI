@@ -7,9 +7,9 @@ You respond with EXACTLY this JSON format and nothing else:
   "reply": "A short friendly message about what you designed (max 2 sentences)",
   "action": "sett" | "weave" | "ts" | "reps" | "none",
   "sett": [{"c": "#hexcolor", "n": number}, ...],
-  "weave": "twill22" | "twill21" | "plain" | "satin5",
+  "weave": "twill22" | "twill21" | "plain" | "satin5" | "twill31" | "basket2" | "hopsack",
   "ts": number (4-22),
-  "reps": number (1-6),
+  "reps": number (1-12),
   "intent": "short description of what changed"
 }
 
@@ -25,9 +25,12 @@ RULES:
 - "weave", "ts", "reps" — only change if user explicitly asked, otherwise copy from current state
 - If user says "make it finer/smaller" → ts = current ts - 2 (min 4)
 - If user says "bolder/bigger/thicker" → ts = current ts + 2 (max 22)
-- If user says "more repeats" → reps = current reps + 1 (max 6)
+- If user says "more repeats" → reps = current reps + 1 (max 12)
 - If user says "plain weave" → weave = "plain"
 - If user says "satin" → weave = "satin5"
+- If user says "3/1 twill" or "twill31" → weave = "twill31"
+- If user says "basket" or "basket weave" → weave = "basket2"
+- If user says "hopsack" → weave = "hopsack"
 - If user provides extracted hex colors from image analysis, validate and use them as-is with proper thread counts proportional to stripe widths
 
 EXAMPLES:
@@ -39,13 +42,18 @@ Response: {"reply":"Beautiful red and navy tartan detected from your image!","ac
 `
 
 export async function askGroq(messages, currentState) {
+  const settSummary = currentState.sett
+    .map(s => `${s.c}×${s.n}t`)
+    .join(', ')
+  const totalThreads = currentState.sett.reduce((a, s) => a + s.n, 0)
+
   const stateContext = `Current fabric state:
-- Sett: ${JSON.stringify(currentState.sett)}
+- Sett (${currentState.sett.length} stripes, ${totalThreads} threads total): [${settSummary}]
 - Weave: ${currentState.weave}
 - Thread size: ${currentState.ts}px
-- Repeats: ${currentState.reps}`
+- Repeats: ${currentState.reps}
+Modify from this state unless user requests a completely new design.`
 
-  // Build messages array with full conversation history
   const apiMessages = [
     { role: 'system', content: SYSTEM_PROMPT },
     { role: 'system', content: stateContext },
@@ -75,7 +83,7 @@ export async function askGroq(messages, currentState) {
   try {
     return JSON.parse(cleaned)
   } catch (parseErr) {
-    console.error('[groqClient] JSON parse error:', parseErr, 'Cleaned raw:', cleaned)
+    console.error('[groqClient] JSON parse error:', parseErr, 'Raw:', cleaned)
     return {
       reply: "I had trouble with that. Try: 'red and navy tartan' or 'Black Watch'.",
       action: 'none', sett: null,

@@ -2,6 +2,8 @@ import { useReducer, useCallback, useState, useRef } from 'react'
 import { PRESETS } from '../data/presets.js'
 import { askGroq } from '../utils/groqClient.js'
 
+const VALID_WEAVES = ['twill22','twill21','plain','satin5','twill31','basket2','hopsack']
+
 const INITIAL = {
   sett:         PRESETS[0].sett.map(s => ({...s})),
   weave:        'twill22',
@@ -16,7 +18,7 @@ function reducer(state, action) {
   switch(action.type) {
     case 'SET_WEAVE':     return { ...state, weave: action.weave }
     case 'SET_TS':        return { ...state, ts: Math.max(4, Math.min(22, action.ts)) }
-    case 'SET_REPS':      return { ...state, reps: Math.max(1, Math.min(6, action.reps)) }
+    case 'SET_REPS':      return { ...state, reps: Math.max(1, Math.min(12, action.reps)) }
     case 'SET_PANEL':     return { ...state, panel: action.panel }
     case 'SET_PRESET':    return { ...state, sett: PRESETS[action.idx].sett.map(s=>({...s})), activePreset: action.idx }
     case 'TOGGLE_THEME':  return { ...state, theme: state.theme === 'light' ? 'dark' : 'light' }
@@ -29,7 +31,6 @@ function reducer(state, action) {
   }
 }
 
-// Actions that should be tracked in undo history
 const HISTORY_ACTIONS = [
   'SET_WEAVE','SET_TS','SET_REPS','SET_PRESET',
   'ADD_STRIPE','UPDATE_STRIPE','REMOVE_STRIPE','REORDER_SETT','APPLY'
@@ -41,25 +42,23 @@ export function useFabricState() {
   const [chatHistory, setChatHistory] = useState([])
   const history   = useRef([INITIAL])
   const histIdx   = useRef(0)
-  // FIX: Use a counter ref instead of a boolean flag.
-  // React 18 batches dispatches asynchronously, so setting a boolean
-  // true→dispatch→false is a race — the false runs before React processes
-  // the action. A counter is incremented before dispatch and decremented
-  // inside the wrapped dispatch, which reads it synchronously.
   const skipDepth = useRef(0)
 
-  // Wrap dispatch to record history
+  // Keep a stable ref to latest dispatch so closures in useEffect never go stale
+  const dispatchRef = useRef(null)
+
   const dispatchWithHistory = useCallback((action) => {
     if (HISTORY_ACTIONS.includes(action.type) && skipDepth.current === 0) {
-      // Compute next state synchronously before dispatch
       const nextState = reducer(history.current[histIdx.current], action)
-      // Trim redo stack
       history.current = history.current.slice(0, histIdx.current + 1)
       history.current.push(nextState)
       histIdx.current = history.current.length - 1
     }
     dispatch(action)
   }, [])
+
+  // Always keep ref in sync — sync effect runs before paint
+  dispatchRef.current = dispatchWithHistory
 
   const undo = useCallback(() => {
     if (histIdx.current <= 0) return
@@ -82,14 +81,13 @@ export function useFabricState() {
 
   const processPrompt = useCallback(async (text, onReply) => {
     setLoading(true)
-
-    // Add user message to history
     const userMsg = { role: 'user', content: text }
-    const updatedHistory = [...chatHistory, userMsg].slice(-10) // keep last 10
+    const updatedHistory = [...chatHistory, userMsg].slice(-10)
 
     try {
       const result = await askGroq(updatedHistory, state)
       const newState = { ...state }
+
       if (result.sett && Array.isArray(result.sett) && result.sett.length > 0) {
         newState.sett = result.sett.map(s => ({
           c: s.c || '#888888',
@@ -97,14 +95,13 @@ export function useFabricState() {
         }))
         newState.activePreset = -1
       }
-      if (result.weave && ['twill22','twill21','plain','satin5'].includes(result.weave))
+      if (result.weave && VALID_WEAVES.includes(result.weave))
         newState.weave = result.weave
-      if (result.ts   && result.ts >= 4  && result.ts <= 22) newState.ts = result.ts
-      if (result.reps && result.reps >= 1 && result.reps <= 6) newState.reps = result.reps
+      if (result.ts   && result.ts >= 4   && result.ts <= 22) newState.ts = result.ts
+      if (result.reps && result.reps >= 1 && result.reps <= 12) newState.reps = result.reps
 
-      dispatchWithHistory({ type: 'APPLY', newState })
+      dispatchRef.current({ type: 'APPLY', newState })
 
-      // Add AI reply to history
       const assistantMsg = { role: 'assistant', content: result.reply || 'Design updated!' }
       setChatHistory([...updatedHistory, assistantMsg].slice(-10))
 
@@ -116,7 +113,7 @@ export function useFabricState() {
     } finally {
       setLoading(false)
     }
-  }, [state, chatHistory, dispatchWithHistory])
+  }, [state, chatHistory])
 
-  return { state, dispatch: dispatchWithHistory, processPrompt, loading, undo, redo, canUndo, canRedo }
+  return { state, dispatch: dispatchWithHistory, dispatchRef, processPrompt, loading, undo, redo, canUndo, canRedo }
 }

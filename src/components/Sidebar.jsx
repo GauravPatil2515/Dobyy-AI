@@ -6,7 +6,10 @@ import { PRESETS } from '../data/presets.js'
 const WEAVES = [
   { v:'twill22', l:'2/2 Twill (Tartan)' },
   { v:'twill21', l:'2/1 Twill' },
+  { v:'twill31', l:'3/1 Twill' },
   { v:'plain',   l:'Plain Weave' },
+  { v:'basket2', l:'Basket Weave' },
+  { v:'hopsack', l:'Hopsack' },
   { v:'satin5',  l:'5-End Satin' },
 ]
 
@@ -15,9 +18,11 @@ export default function Sidebar({
   gallery, galleryActiveId, onSave, onLoad, onRemove, onRename,
   galleryLoading, canSaveMore, maxDesigns
 }) {
+  const totalThreads = state.sett.reduce((a,s) => a+s.n, 0)
+
   return (
     <aside className={`sidebar ${className}`}>
-      <SettBuilder sett={state.sett} dispatch={dispatch}/>
+      <SettBuilder sett={state.sett} dispatch={dispatch} totalThreads={totalThreads}/>
       <Gallery
         gallery={gallery}
         activeId={galleryActiveId}
@@ -72,7 +77,7 @@ export default function Sidebar({
         <div className="ctrl-row">
           <span className="ctrl-label">Repeats</span>
           <input type="range" className="ctrl-range"
-            min={1} max={6} value={state.reps}
+            min={1} max={12} value={state.reps}
             onChange={e => dispatch({type:'SET_REPS', reps:+e.target.value})}/>
           <span className="ctrl-val">{state.reps}×</span>
         </div>

@@ -1,9 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useMemo } from 'react'
 import { expandSett, weaveMatrix, getFiberCanvas } from '../utils/weaveUtils.js'
 import { h2r, blend, toRgba, lighter, darker } from '../utils/colorUtils.js'
 
-function renderFabric(canvas, { sett, weave, ts, reps }) {
-  const threads = expandSett(sett)
+function renderFabric(canvas, { sett, weave, ts, reps }, matrix, threads) {
   if (!threads.length || !canvas) return
 
   const L     = threads.length
@@ -11,12 +10,11 @@ function renderFabric(canvas, { sett, weave, ts, reps }) {
   canvas.width  = total * ts
   canvas.height = total * ts
   const ctx = canvas.getContext('2d')
-  const M   = weaveMatrix(weave, total)
 
   // Pass 1 — Optical mix fill
   for(let i=0; i<total; i++) {
     for(let j=0; j<total; j++) {
-      const up  = M[i][j] === 1
+      const up  = matrix[i % matrix.length][j % matrix.length] === 1
       const wc  = h2r(threads[j % L])
       const fc  = h2r(threads[i % L])
       const col = blend(wc, fc, up ? 0.70 : 0.30)
@@ -30,7 +28,7 @@ function renderFabric(canvas, { sett, weave, ts, reps }) {
     for(let j=0; j<total; j++) {
       const x   = j * ts
       const y   = i * ts
-      const up  = M[i][j] === 1
+      const up  = matrix[i % matrix.length][j % matrix.length] === 1
       const col = blend(h2r(threads[j%L]), h2r(threads[i%L]), up ? 0.70 : 0.30)
 
       ctx.strokeStyle = toRgba(lighter(col, 50), 0.46)
@@ -92,12 +90,23 @@ function renderFabric(canvas, { sett, weave, ts, reps }) {
 export function useFabricRenderer(canvasRef, state) {
   const rafRef = useRef(null)
 
+  // Memoize the expanded thread array — recomputes only when sett changes
+  const threads = useMemo(() => expandSett(state.sett), [state.sett])
+
+  // Memoize the weave matrix — uses a small repeating tile (single repeat)
+  // so we never allocate an O(n²) matrix for the full canvas
+  const tileSize = threads.length || 1
+  const matrix = useMemo(
+    () => weaveMatrix(state.weave, tileSize),
+    [state.weave, tileSize]
+  )
+
   useEffect(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current)
     rafRef.current = requestAnimationFrame(() => {
-      renderFabric(canvasRef.current, state)
+      renderFabric(canvasRef.current, state, matrix, threads)
       rafRef.current = null
     })
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
-  }, [state.sett, state.weave, state.ts, state.reps])
+  }, [threads, matrix, state.ts, state.reps])
 }

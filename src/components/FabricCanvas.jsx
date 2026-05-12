@@ -1,18 +1,21 @@
 import { useRef, useState } from 'react'
 import { useFabricRenderer } from '../hooks/useFabricRenderer.js'
 import { copyShareLink } from '../utils/shareUtils.js'
+import { shaftCount, wifTieup } from '../utils/weaveUtils.js'
 import DrapeView from './DrapeView.jsx'
 
 const PANELS = ['fabric', 'draft', 'peg', 'drape']
 const PANEL_LABELS = {
   fabric: 'Fabric',
   draft:  'Draft',
-  peg:    'Peg',
+  peg:    'Peg Plan',
   drape:  '3D Drape'
 }
 const WEAVE_LABELS = {
-  twill22:'2/2 twill', twill21:'2/1 twill',
-  plain:'plain weave', satin5:'5-end satin'
+  twill22:'2/2 Twill', twill21:'2/1 Twill',
+  plain:'Plain Weave', satin5:'5-End Satin',
+  twill31:'3/1 Twill', basket2:'Basket Weave',
+  hopsack:'Hopsack'
 }
 
 function exportPNG(canvas) {
@@ -45,12 +48,19 @@ function exportWIF(state) {
   state.sett.forEach(s => {
     for (let i = 0; i < s.n; i++) threads.push(s.c)
   })
-  const L = threads.length
+  const L      = threads.length
+  const shafts = shaftCount(state.weave)
+  const tieup  = wifTieup(state.weave)
 
   const hexToRGB = hex => {
     const n = parseInt(hex.replace('#',''), 16)
     return `${(n>>16)&255},${(n>>8)&255},${n&255}`
   }
+
+  // Build threading: assign each warp thread to a shaft based on weave
+  const threading = threads.map((_, i) => `${i+1}=${(i % shafts) + 1}`)
+  // Weft mirrors warp
+  const weftColors = threads.map((c, i) => `${i+1}=${hexToRGB(c)}`)
 
   const wifLines = [
     '[WIF]',
@@ -63,6 +73,7 @@ function exportWIF(state) {
     'Color Palette=true',
     'Threading=true',
     'Tieup=true',
+    'Weft Colors=true',
     '',
     '[COLOR PALETTE]',
     'Entries=' + L,
@@ -73,13 +84,16 @@ function exportWIF(state) {
     ...threads.map((c, i) => `${i+1}=${hexToRGB(c)}`),
     '',
     '[THREADING]',
-    ...threads.map((_, i) => `${i+1}=${(i % 4) + 1}`),
+    ...threading,
     '',
-    '[TIEUP]',
-    '1=1,3',
-    '2=2,4',
-    '3=1,3',
-    '4=2,4',
+    `[TIEUP]`,
+    ...tieup,
+    '',
+    '[WEFT COLORS]',
+    `Entries=${L}`,
+    '',
+    '[WEFT COLOR TABLE]',
+    ...weftColors,
   ]
 
   const blob = new Blob([wifLines.join('\n')], { type: 'text/plain' })
@@ -93,15 +107,16 @@ function exportWIF(state) {
 function DraftGrid({ state }) {
   const threads = []
   state.sett.forEach(s => { for(let i=0;i<s.n;i++) threads.push(s.c) })
-  const L = Math.min(threads.length * state.reps, 80)
-  const shafts = 4
-  const cs = 10
+  const L      = Math.min(threads.length * state.reps, 80)
+  const shafts = shaftCount(state.weave)
+  const cs     = 10
 
   return (
     <div className="draft-wrap">
-      <div className="draft-label">Threading Draft</div>
+      <div className="draft-label">Threading Draft — {WEAVE_LABELS[state.weave]} · {shafts} shafts</div>
       <svg width={L*cs + shafts*cs + 20} height={shafts*cs + L*cs + 20}
         style={{display:'block', margin:'0 auto'}}>
+        {/* Threading row */}
         {Array.from({length:L}, (_,i) => {
           const shaft = i % shafts
           const color = threads[i % threads.length]
@@ -112,9 +127,10 @@ function DraftGrid({ state }) {
             </g>
           )
         })}
+        {/* Tieup */}
         {Array.from({length:shafts}, (_,s) =>
           Array.from({length:shafts}, (_,t) => {
-            const tied = (s === t) || (s === (t+2)%shafts)
+            const tied = s === t
             return tied ? (
               <rect key={`tu${s}-${t}`}
                 x={L*cs + 4 + t*cs} y={s*cs}
@@ -128,12 +144,12 @@ function DraftGrid({ state }) {
             )
           })
         )}
-        {Array.from({length:L}, (_,i) =>
-          Array.from({length:L}, (_,j) => {
-            const up = (state.weave==='twill22') ? (i+j)%4<2
-                     : (state.weave==='plain')   ? (i+j)%2
-                     : (state.weave==='twill21') ? (i+j)%3<2
-                     : (i*2+j)%5===0
+        {/* Draw-down preview */}
+        {Array.from({length:Math.min(L,40)}, (_,i) =>
+          Array.from({length:Math.min(L,40)}, (_,j) => {
+            const shaft = j % shafts
+            // warp up: shaft is tied on this pick
+            const up = shaft === (i % shafts)
             const wc = threads[j % threads.length]
             const fc = threads[i % threads.length]
             return (
@@ -152,13 +168,13 @@ function DraftGrid({ state }) {
 function PegPlan({ state }) {
   const threads = []
   state.sett.forEach(s => { for(let i=0;i<s.n;i++) threads.push(s.c) })
-  const L = Math.min(threads.length * state.reps, 60)
-  const shafts = 4
-  const cs = 12
+  const L      = Math.min(threads.length * state.reps, 60)
+  const shafts = shaftCount(state.weave)
+  const cs     = 12
 
   return (
     <div className="draft-wrap">
-      <div className="draft-label">Peg Plan</div>
+      <div className="draft-label">Peg Plan — {WEAVE_LABELS[state.weave]} · {shafts} shafts</div>
       <div style={{display:'flex', gap:2, justifyContent:'center', flexWrap:'wrap', padding:12}}>
         {Array.from({length:L}, (_,i) => (
           <div key={i} style={{display:'flex', flexDirection:'column', gap:2}}>
@@ -192,6 +208,8 @@ export default function FabricCanvas({ state, dispatch }) {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  const totalThreads = state.sett.reduce((a,s) => a+s.n, 0)
+
   return (
     <div className="center">
       <div className="view-header">
@@ -218,7 +236,7 @@ export default function FabricCanvas({ state, dispatch }) {
             <button className="exp-btn" onClick={() => exportJSON(state)}
               title="Download JSON">⬇ JSON</button>
             <button className="exp-btn" onClick={() => exportWIF(state)}
-              title="Download WIF">⬇ WIF</button>
+              title="Download WIF (loom-ready)">⬇ WIF</button>
             <button className="exp-btn share-btn" onClick={handleShare} title="Copy share link">
               {copied ? '✓ Copied!' : '🔗 Share'}
             </button>
@@ -243,8 +261,9 @@ export default function FabricCanvas({ state, dispatch }) {
 
       <div className="status-bar">
         <span className="pill"><span className="dot"/>Ready</span>
-        <span className="pill">{state.sett.reduce((a,s) => a+s.n, 0)} threads</span>
+        <span className="pill">{totalThreads} threads</span>
         <span className="pill">{WEAVE_LABELS[state.weave]}</span>
+        <span className="pill">{shaftCount(state.weave)}-shaft</span>
         <span className="pill">{state.ts}px · ×{state.reps}</span>
       </div>
     </div>

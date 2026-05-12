@@ -11,9 +11,31 @@ export function weaveMatrix(type, size) {
       if(type==='twill21') return (i+j)%3<2 ? 1 : 0
       if(type==='plain')   return (i+j)%2
       if(type==='satin5')  return (i*2+j)%5===0 ? 1 : 0
+      if(type==='twill31') return (i+j)%4<3 ? 1 : 0
+      if(type==='basket2') return (Math.floor(i/2)+Math.floor(j/2))%2 ? 1 : 0
+      if(type==='hopsack') return (Math.floor(i/2)+j)%2 ? 1 : 0
       return (i+j)%4<2 ? 1 : 0
     })
   )
+}
+
+// Returns shaft count for a given weave type
+export function shaftCount(type) {
+  return { twill22:4, twill21:3, plain:2, satin5:5, twill31:4, basket2:2, hopsack:2 }[type] ?? 4
+}
+
+// Returns correct WIF [TIEUP] lines for a given weave type
+export function wifTieup(type) {
+  const maps = {
+    twill22: ['1=1,3','2=2,4','3=1,3','4=2,4'],
+    twill21: ['1=1,2','2=2,3','3=3,1'],
+    plain:   ['1=1','2=2'],
+    satin5:  ['1=1','2=3','3=5','4=2','5=4'],
+    twill31: ['1=1,2,3','2=2,3,4','3=3,4,1','4=4,1,2'],
+    basket2: ['1=1','2=2'],
+    hopsack: ['1=1','2=2'],
+  }
+  return maps[type] ?? maps.twill22
 }
 
 let _fiber = null

@@ -77,7 +77,7 @@ function SortableStripe({ stripe, idx, total, dispatch }) {
   )
 }
 
-export default function SettBuilder({ sett, dispatch }) {
+export default function SettBuilder({ sett, dispatch, totalThreads }) {
   const [activeId, setActiveId] = useState(null)
 
   const sensors = useSensors(
@@ -103,7 +103,10 @@ export default function SettBuilder({ sett, dispatch }) {
 
   return (
     <div className="section">
-      <div className="section-title">Sett Builder</div>
+      <div className="section-header">
+        <div className="section-title">Sett Builder</div>
+        <div className="section-meta">{totalThreads} threads / repeat</div>
+      </div>
 
       {/* Sett bar preview */}
       <div className="sett-bar">
