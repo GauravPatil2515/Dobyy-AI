@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users collection
+    match /users/{userId} {
+
+      // Any authenticated user can read their own document
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      // Allow a user to CREATE their own document only if tier is 'free'
+      // (new user signup path in SubscriptionContext)
+      allow create: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.tier == 'free';
+
+      // Allow updates ONLY for safe fields — never allow client to set tier
+      // Tier upgrades must go through a Cloud Function with payment verification
+      allow update: if request.auth != null
+        && request.auth.uid == userId
+        && !('tier' in request.resource.data.diff(resource.data))
+        && request.resource.data.keys().hasOnly([
+             'email', 'displayName', 'photoURL',
+             'usage', 'updatedAt'
+           ]);
+
+      // Deny delete
+      allow delete: if false;
+    }
+
+    // Designs sub-collection
+    match /users/{userId}/designs/{designId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

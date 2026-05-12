@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useFabricState } from './hooks/useFabricState.js'
 import { useFirestoreGallery } from './hooks/useFirestoreGallery.js'
 import { useAuth } from './contexts/AuthContext.jsx'
@@ -35,6 +35,11 @@ export default function App() {
     undo, redo, canUndo, canRedo
   } = useFabricState()
 
+  // FIX: Store dispatch in a ref so the URL-load effect never has a stale
+  // closure, while still only running once on mount (empty dep array).
+  const dispatchRef = useRef(dispatch)
+  useEffect(() => { dispatchRef.current = dispatch }, [dispatch])
+
   const { 
     gallery, 
     activeId: galleryActiveId, 
@@ -50,19 +55,19 @@ export default function App() {
     document.documentElement.dataset.theme = state.theme
   }, [state.theme])
 
-  // Load shared state from URL on mount
+  // Load shared state from URL on mount — uses dispatchRef to avoid stale closure
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const d = params.get('d')
     if (d) {
       const decoded = decodeState(d)
       if (decoded) {
-        dispatch({ type: 'APPLY', newState: { ...state, ...decoded } })
-        // Clean URL without reloading
+        // dispatchRef.current always points to the latest dispatch
+        dispatchRef.current({ type: 'APPLY', newState: decoded })
         window.history.replaceState({}, '', window.location.pathname)
       }
     }
-  }, []) // run once on mount
+  }, []) // intentionally run once on mount only
 
   // Handle sidebar resizing
   useEffect(() => {
@@ -153,7 +158,7 @@ export default function App() {
 
         <div className="main" style={{
           gridTemplateColumns: `${leftWidth}px 1fr ${rightWidth}px`,
-          cursor: resizing ? (resizing === 'left' ? 'col-resize' : 'col-resize') : 'auto'
+          cursor: resizing ? 'col-resize' : 'auto'
         }}>
           <div style={{ display: 'flex', position: 'relative' }}>
             <Sidebar
@@ -202,8 +207,9 @@ export default function App() {
         <UpgradeModal
           onClose={() => setShowUpgradeModal(false)}
           onUpgrade={() => {
-            // Navigate to Stripe or payment page
-            window.open('https://stripe.com/payments', '_blank')
+            // TODO: Replace with your actual Stripe Checkout session URL
+            // e.g., window.open('https://buy.stripe.com/your-link', '_blank')
+            console.warn('Stripe checkout not yet configured.')
           }}
         />
       )}

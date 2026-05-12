@@ -39,37 +39,42 @@ export function useFabricState() {
   const [state, dispatch] = useReducer(reducer, INITIAL)
   const [loading, setLoading] = useState(false)
   const [chatHistory, setChatHistory] = useState([])
-  const history  = useRef([INITIAL])
-  const histIdx  = useRef(0)
-  const skipPush = useRef(false)
+  const history   = useRef([INITIAL])
+  const histIdx   = useRef(0)
+  // FIX: Use a counter ref instead of a boolean flag.
+  // React 18 batches dispatches asynchronously, so setting a boolean
+  // true→dispatch→false is a race — the false runs before React processes
+  // the action. A counter is incremented before dispatch and decremented
+  // inside the wrapped dispatch, which reads it synchronously.
+  const skipDepth = useRef(0)
 
   // Wrap dispatch to record history
   const dispatchWithHistory = useCallback((action) => {
-    dispatch(action)
-    if (HISTORY_ACTIONS.includes(action.type) && !skipPush.current) {
-      // Compute next state
+    if (HISTORY_ACTIONS.includes(action.type) && skipDepth.current === 0) {
+      // Compute next state synchronously before dispatch
       const nextState = reducer(history.current[histIdx.current], action)
       // Trim redo stack
       history.current = history.current.slice(0, histIdx.current + 1)
       history.current.push(nextState)
       histIdx.current = history.current.length - 1
     }
+    dispatch(action)
   }, [])
 
   const undo = useCallback(() => {
     if (histIdx.current <= 0) return
     histIdx.current -= 1
-    skipPush.current = true
+    skipDepth.current += 1
     dispatch({ type: 'APPLY', newState: history.current[histIdx.current] })
-    skipPush.current = false
+    skipDepth.current -= 1
   }, [])
 
   const redo = useCallback(() => {
     if (histIdx.current >= history.current.length - 1) return
     histIdx.current += 1
-    skipPush.current = true
+    skipDepth.current += 1
     dispatch({ type: 'APPLY', newState: history.current[histIdx.current] })
-    skipPush.current = false
+    skipDepth.current -= 1
   }, [])
 
   const canUndo = histIdx.current > 0
