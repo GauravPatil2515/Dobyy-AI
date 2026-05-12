@@ -35,46 +35,42 @@ export default function App() {
     undo, redo, canUndo, canRedo
   } = useFabricState()
 
-  // FIX: Store dispatch in a ref so the URL-load effect never has a stale
-  // closure, while still only running once on mount (empty dep array).
   const dispatchRef = useRef(dispatch)
   useEffect(() => { dispatchRef.current = dispatch }, [dispatch])
 
-  const { 
-    gallery, 
-    activeId: galleryActiveId, 
+  const {
+    gallery,
+    activeId: galleryActiveId,
     loading: galleryLoading,
-    save, 
-    load, 
-    remove, 
+    save,
+    load,
+    remove,
     rename,
-    canSaveMore 
+    canSaveMore
   } = useFirestoreGallery(state, dispatch)
 
   useEffect(() => {
     document.documentElement.dataset.theme = state.theme
   }, [state.theme])
 
-  // Load shared state from URL on mount — uses dispatchRef to avoid stale closure
+  // Load shared state from URL on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const d = params.get('d')
     if (d) {
       const decoded = decodeState(d)
       if (decoded) {
-        // dispatchRef.current always points to the latest dispatch
         dispatchRef.current({ type: 'APPLY', newState: decoded })
         window.history.replaceState({}, '', window.location.pathname)
       }
     }
-  }, []) // intentionally run once on mount only
+  }, [])
 
   // Handle sidebar resizing
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (!resizing) return
       e.preventDefault()
-
       if (resizing === 'left') {
         const newWidth = Math.max(180, Math.min(450, e.clientX))
         setLeftWidth(newWidth)
@@ -108,34 +104,19 @@ export default function App() {
     setShowLanding(false)
   }
 
-  // Show loading state while auth initializes
+  // BUG FIX: replaced inline loading div + <style> tag with CSS classes from main.css
+  // The old inline @keyframes spin fought with the global CSS spin keyframe we added.
   if (authLoading) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--bg, #f8f7f5)'
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            border: '3px solid #e5e7eb',
-            borderTopColor: '#0f3460',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 16px'
-          }} />
-          <p style={{ color: '#6b7280' }}>Loading...</p>
+      <div className="app-loading">
+        <div className="app-loading-inner">
+          <div className="app-spinner" />
+          <p style={{ color: 'var(--fg2)' }}>Loading...</p>
         </div>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     )
   }
 
-  // Require authentication
   if (!isAuthenticated) {
     return <LoginPage />
   }
@@ -151,7 +132,6 @@ export default function App() {
           canUndo={canUndo} canRedo={canRedo}
           onMenuToggle={() => setSidebarOpen(o => !o)}/>
 
-        {/* Mobile sidebar backdrop */}
         <div
           className={`sidebar-backdrop${sidebarOpen ? ' visible' : ''}`}
           onClick={() => setSidebarOpen(false)}/>
@@ -207,9 +187,8 @@ export default function App() {
         <UpgradeModal
           onClose={() => setShowUpgradeModal(false)}
           onUpgrade={() => {
-            // TODO: Replace with your actual Stripe Checkout session URL
-            // e.g., window.open('https://buy.stripe.com/your-link', '_blank')
-            console.warn('Stripe checkout not yet configured.')
+            // Show contact link until Stripe is wired
+            window.open('mailto:gaurav@dobby.studio?subject=Dobby Studio Pro Upgrade', '_blank')
           }}
         />
       )}

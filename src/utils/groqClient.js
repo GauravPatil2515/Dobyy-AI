@@ -1,3 +1,5 @@
+import { auth } from '../firebase.js'
+
 const SYSTEM_PROMPT = `
 You are Dobby, an expert AI fabric and tartan designer.
 The user describes a fabric design in natural language or provides extracted colors.
@@ -43,7 +45,7 @@ Response: {"reply":"Beautiful red and navy tartan detected from your image!","ac
 
 export async function askGroq(messages, currentState) {
   const settSummary = currentState.sett
-    .map(s => `${s.c}×${s.n}t`)
+    .map(s => `${s.c}\u00d7${s.n}t`)
     .join(', ')
   const totalThreads = currentState.sett.reduce((a, s) => a + s.n, 0)
 
@@ -60,9 +62,20 @@ Modify from this state unless user requests a completely new design.`
     ...messages
   ]
 
+  // BUG FIX: send Firebase auth headers so /api/chat rate-limits per real user
+  // instead of bucketing everyone under 'anonymous' and sharing quotas.
+  const user = auth.currentUser
+  const uid = user?.uid || 'anonymous'
+  // tier header — extend this when Stripe pro plan is wired
+  const tier = 'free'
+
   const res = await fetch('/api/chat', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-User-Id': uid,
+      'X-User-Tier': tier,
+    },
     body: JSON.stringify({
       model: 'llama-3.3-70b-versatile',
       messages: apiMessages,
