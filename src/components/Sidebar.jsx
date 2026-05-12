@@ -2,6 +2,7 @@ import SettBuilder from './SettBuilder.jsx'
 import RegistrySearch from './RegistrySearch.jsx'
 import Gallery from './Gallery.jsx'
 import { PRESETS } from '../data/presets.js'
+import { t } from '../utils/i18n.js'
 
 const WEAVES = [
   { v:'twill22', l:'2/2 Twill (Tartan)' },
@@ -36,7 +37,7 @@ export default function Sidebar({
       <RegistrySearch dispatch={dispatch}/>
 
       <div className="section">
-        <div className="section-title">Presets</div>
+        <div className="section-title">{t('sidebar.presets')}</div>
         <div className="preset-list">
           {PRESETS.map((p, i) => (
             <div
@@ -58,7 +59,7 @@ export default function Sidebar({
       </div>
 
       <div className="section">
-        <div className="section-title">Weave &amp; Scale</div>
+        <div className="section-title">{t('sidebar.weave')} &amp; Scale</div>
         <select
           className="ctrl-select"
           value={state.weave}
@@ -68,14 +69,14 @@ export default function Sidebar({
           ))}
         </select>
         <div className="ctrl-row">
-          <span className="ctrl-label">Thread px</span>
+          <span className="ctrl-label">{t('sidebar.ts')}</span>
           <input type="range" className="ctrl-range"
             min={4} max={22} value={state.ts}
             onChange={e => dispatch({type:'SET_TS', ts:+e.target.value})}/>
           <span className="ctrl-val">{state.ts}px</span>
         </div>
         <div className="ctrl-row">
-          <span className="ctrl-label">Repeats</span>
+          <span className="ctrl-label">{t('sidebar.reps')}</span>
           <input type="range" className="ctrl-range"
             min={1} max={12} value={state.reps}
             onChange={e => dispatch({type:'SET_REPS', reps:+e.target.value})}/>
