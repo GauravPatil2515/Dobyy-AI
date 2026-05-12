@@ -2,6 +2,8 @@ import { useRef, useState } from 'react'
 import { useFabricRenderer } from '../hooks/useFabricRenderer.js'
 import { copyShareLink } from '../utils/shareUtils.js'
 import { shaftCount, wifTieup } from '../utils/weaveUtils.js'
+import { nearestPantone } from '../utils/pantoneData.js'
+import { exportPDFTechSheet } from '../utils/pdfExport.js'
 import DrapeView from './DrapeView.jsx'
 
 const PANELS = ['fabric', 'draft', 'peg', 'drape']
@@ -57,43 +59,30 @@ function exportWIF(state) {
     return `${(n>>16)&255},${(n>>8)&255},${n&255}`
   }
 
-  // Build threading: assign each warp thread to a shaft based on weave
-  const threading = threads.map((_, i) => `${i+1}=${(i % shafts) + 1}`)
-  // Weft mirrors warp
+  const threading  = threads.map((_, i) => `${i+1}=${(i % shafts) + 1}`)
   const weftColors = threads.map((c, i) => `${i+1}=${hexToRGB(c)}`)
 
   const wifLines = [
-    '[WIF]',
-    'Version=1.1',
+    '[WIF]', 'Version=1.1',
     'Date=' + new Date().toDateString(),
     'Developers=Dobby Studio',
     'Source Program=Dobby Studio React',
     '',
     '[CONTENTS]',
-    'Color Palette=true',
-    'Threading=true',
-    'Tieup=true',
-    'Weft Colors=true',
+    'Color Palette=true', 'Threading=true',
+    'Tieup=true', 'Weft Colors=true',
     '',
-    '[COLOR PALETTE]',
-    'Entries=' + L,
-    'Form=RGB',
-    'Unit=Percent',
+    '[COLOR PALETTE]', 'Entries=' + L, 'Form=RGB', 'Unit=Percent',
     '',
     '[COLOR TABLE]',
     ...threads.map((c, i) => `${i+1}=${hexToRGB(c)}`),
     '',
-    '[THREADING]',
-    ...threading,
+    '[THREADING]', ...threading,
+    '', '[TIEUP]', ...tieup,
     '',
-    `[TIEUP]`,
-    ...tieup,
+    '[WEFT COLORS]', `Entries=${L}`,
     '',
-    '[WEFT COLORS]',
-    `Entries=${L}`,
-    '',
-    '[WEFT COLOR TABLE]',
-    ...weftColors,
+    '[WEFT COLOR TABLE]', ...weftColors,
   ]
 
   const blob = new Blob([wifLines.join('\n')], { type: 'text/plain' })
@@ -102,6 +91,46 @@ function exportWIF(state) {
   link.href = URL.createObjectURL(blob)
   link.click()
   URL.revokeObjectURL(link.href)
+}
+
+// Pantone tooltip shown on hover over each stripe swatch
+function PantoneTooltip({ hex }) {
+  const [show, setShow] = useState(false)
+  const match = nearestPantone(hex)
+  return (
+    <span
+      style={{ position:'relative', display:'inline-block' }}
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}>
+      <span style={{
+        display:'inline-block', width:12, height:12,
+        borderRadius:2, background:hex,
+        border:'1px solid rgba(0,0,0,.2)',
+        cursor:'help', verticalAlign:'middle'
+      }}/>
+      {show && (
+        <span style={{
+          position:'absolute', bottom:'120%', left:'50%',
+          transform:'translateX(-50%)',
+          background:'#1a1a1a', color:'#fff',
+          fontSize:10, padding:'4px 8px',
+          borderRadius:4, whiteSpace:'nowrap',
+          zIndex:9999, pointerEvents:'none',
+          boxShadow:'0 2px 8px rgba(0,0,0,.3)'
+        }}>
+          <span style={{
+            display:'inline-block', width:10, height:10,
+            borderRadius:2, background:match.pantoneHex,
+            border:'1px solid rgba(255,255,255,.3)',
+            marginRight:5, verticalAlign:'middle'
+          }}/>
+          {match.code} {match.name}
+          <br/>
+          <span style={{color:'#aaa',fontSize:9}}>Δ{match.delta} from {hex.toUpperCase()}</span>
+        </span>
+      )}
+    </span>
+  )
 }
 
 function DraftGrid({ state }) {
@@ -116,7 +145,6 @@ function DraftGrid({ state }) {
       <div className="draft-label">Threading Draft — {WEAVE_LABELS[state.weave]} · {shafts} shafts</div>
       <svg width={L*cs + shafts*cs + 20} height={shafts*cs + L*cs + 20}
         style={{display:'block', margin:'0 auto'}}>
-        {/* Threading row */}
         {Array.from({length:L}, (_,i) => {
           const shaft = i % shafts
           const color = threads[i % threads.length]
@@ -127,7 +155,6 @@ function DraftGrid({ state }) {
             </g>
           )
         })}
-        {/* Tieup */}
         {Array.from({length:shafts}, (_,s) =>
           Array.from({length:shafts}, (_,t) => {
             const tied = s === t
@@ -144,11 +171,9 @@ function DraftGrid({ state }) {
             )
           })
         )}
-        {/* Draw-down preview */}
         {Array.from({length:Math.min(L,40)}, (_,i) =>
           Array.from({length:Math.min(L,40)}, (_,j) => {
             const shaft = j % shafts
-            // warp up: shaft is tied on this pick
             const up = shaft === (i % shafts)
             const wc = threads[j % threads.length]
             const fc = threads[i % threads.length]
@@ -237,6 +262,12 @@ export default function FabricCanvas({ state, dispatch }) {
               title="Download JSON">⬇ JSON</button>
             <button className="exp-btn" onClick={() => exportWIF(state)}
               title="Download WIF (loom-ready)">⬇ WIF</button>
+            <button
+              className="exp-btn pdf-btn"
+              onClick={() => exportPDFTechSheet(state, canvasRef.current)}
+              title="Download PDF Tech Sheet (mill-ready with Pantone codes)">
+              ⬇ PDF Sheet
+            </button>
             <button className="exp-btn share-btn" onClick={handleShare} title="Copy share link">
               {copied ? '✓ Copied!' : '🔗 Share'}
             </button>
@@ -246,17 +277,22 @@ export default function FabricCanvas({ state, dispatch }) {
 
       <div className="canvas-wrap">
         {state.panel === 'fabric' && (
-          <canvas ref={canvasRef} className="fabric-canvas"/>
+          <>
+            <canvas ref={canvasRef} className="fabric-canvas"/>
+            {/* Pantone swatch row — hover any swatch to see nearest Pantone TCX */}
+            <div style={{
+              display:'flex', gap:4, justifyContent:'center',
+              padding:'6px 0', flexWrap:'wrap'
+            }}>
+              {state.sett.map((s, i) => (
+                <PantoneTooltip key={i} hex={s.c} />
+              ))}
+            </div>
+          </>
         )}
-        {state.panel === 'draft' && (
-          <DraftGrid state={state}/>
-        )}
-        {state.panel === 'peg' && (
-          <PegPlan state={state}/>
-        )}
-        {state.panel === 'drape' && (
-          <DrapeView state={state}/>
-        )}
+        {state.panel === 'draft' && <DraftGrid state={state}/>}
+        {state.panel === 'peg'   && <PegPlan state={state}/>}
+        {state.panel === 'drape' && <DrapeView state={state}/>}
       </div>
 
       <div className="status-bar">
