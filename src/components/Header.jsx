@@ -13,7 +13,6 @@ export default function Header({ state, dispatch, undo, redo, canUndo, canRedo, 
                 twill31:'3/1 twill', basket2:'basket weave', hopsack:'hopsack' }
   const total = state.sett.reduce((a,s) => a+s.n, 0)
 
-  // Listen for language changes fired from LandingPage or anywhere
   useEffect(() => {
     const onLangChange = (e) => setLangState(e.detail)
     window.addEventListener('dobby-lang-change', onLangChange)
@@ -61,7 +60,10 @@ export default function Header({ state, dispatch, undo, redo, canUndo, canRedo, 
             <rect x="9" y="9" width="7" height="7" fill="white" opacity=".9"/>
           </svg>
         </div>
-        <span className="logo-text">{t('app.name').split(' ')[0]}<em className="logo-sub"> {t('app.name').split(' ')[1] || 'Studio'}</em></span>
+        <span className="logo-text">
+          {t('app.name').split(' ')[0]}
+          <em className="logo-sub"> {t('app.name').split(' ')[1] || 'Studio'}</em>
+        </span>
       </div>
 
       <div className="header-center">
@@ -76,21 +78,13 @@ export default function Header({ state, dispatch, undo, redo, canUndo, canRedo, 
           </svg>
         </button>
 
-        {/* Language switcher — compact in header */}
-        <div style={{ display:'flex', gap:3, marginLeft:10 }}>
+        <div className="lang-switcher">
           {SUPPORTED_LANGS.map(({ code, flag }) => (
             <button
               key={code}
               onClick={() => handleLang(code)}
               title={code.toUpperCase()}
-              style={{
-                background: lang === code ? 'rgba(255,255,255,.2)' : 'rgba(255,255,255,.05)',
-                border: lang === code ? '1px solid rgba(255,255,255,.4)' : '1px solid rgba(255,255,255,.1)',
-                borderRadius: 5, padding:'2px 6px',
-                fontSize: 13, cursor:'pointer',
-                opacity: lang === code ? 1 : 0.55,
-                transition:'all 150ms'
-              }}>
+              className={`lang-btn${lang === code ? ' active' : ''}`}>
               {flag}
             </button>
           ))}
@@ -98,68 +92,36 @@ export default function Header({ state, dispatch, undo, redo, canUndo, canRedo, 
       </div>
 
       <div className="header-right">
-        <span className="badge">{total}T · {state.sett.length} colors · {wl[state.weave]}</span>
-        <button className="icon-btn"
-          onClick={() => dispatch({type:'TOGGLE_THEME'})} title="Toggle theme">
+        <span className="badge">{total}T · {state.sett.length}c · {wl[state.weave]}</span>
+
+        <button className="icon-btn" onClick={() => dispatch({type:'TOGGLE_THEME'})} title="Toggle theme">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
           </svg>
         </button>
 
-        <div style={{ position:'relative' }} data-profile-dropdown>
-          <button
-            onClick={() => setShowProfile(!showProfile)}
-            style={{
-              display:'flex', alignItems:'center', gap:8,
-              padding:'4px 8px', borderRadius:20, border:'none',
-              background:'rgba(0,0,0,0.05)', cursor:'pointer', marginLeft:8
-            }}>
+        <div className="profile-wrap" data-profile-dropdown>
+          <button className="profile-btn" onClick={() => setShowProfile(o => !o)}>
             {user?.photoURL ? (
-              <img src={user.photoURL} alt="Profile"
-                style={{ width:28, height:28, borderRadius:'50%' }}/>
+              <img src={user.photoURL} alt="Profile" className="profile-avatar"/>
             ) : (
-              <div style={{
-                width:28, height:28, borderRadius:'50%',
-                background:'linear-gradient(135deg,#667eea 0%,#764ba2 100%)',
-                display:'flex', alignItems:'center', justifyContent:'center',
-                color:'white', fontSize:12, fontWeight:600
-              }}>
+              <div className="profile-avatar-fallback">
                 {user?.displayName?.[0]?.toUpperCase() || 'U'}
               </div>
             )}
-            <span style={{ fontSize:'0.85rem', color:'var(--text,#333)' }}>
-              {isPro && (
-                <span style={{
-                  background:'linear-gradient(135deg,#667eea 0%,#764ba2 100%)',
-                  color:'white', padding:'2px 6px', borderRadius:4,
-                  fontSize:'0.65rem', fontWeight:600, marginRight:4
-                }}>PRO</span>
-              )}
-            </span>
+            {isPro && <span className="profile-pro-badge">PRO</span>}
           </button>
 
           {showProfile && (
-            <div style={{
-              position:'absolute', top:'100%', right:0, marginTop:8,
-              background:'white', borderRadius:12,
-              boxShadow:'0 4px 20px rgba(0,0,0,0.15)',
-              padding:12, minWidth:200, zIndex:100
-            }}>
-              <div style={{ padding:'8px 12px', borderBottom:'1px solid #e5e7eb', marginBottom:8 }}>
-                <p style={{ fontWeight:600, margin:0, fontSize:'0.9rem' }}>{user?.displayName}</p>
-                <p style={{ margin:'4px 0 0', fontSize:'0.8rem', color:'#6b7280' }}>{user?.email}</p>
+            <div className="profile-dropdown">
+              <div className="profile-dropdown-header">
+                <p className="profile-dropdown-name">{user?.displayName || 'Designer'}</p>
+                <p className="profile-dropdown-email">{user?.email}</p>
               </div>
               <button
-                onClick={() => { logout(); setShowProfile(false) }}
-                style={{
-                  width:'100%', padding:'8px 12px', textAlign:'left',
-                  border:'none', background:'none', borderRadius:6,
-                  cursor:'pointer', fontSize:'0.9rem',
-                  display:'flex', alignItems:'center', gap:8
-                }}
-                onMouseEnter={e => e.target.style.background='#f3f4f6'}
-                onMouseLeave={e => e.target.style.background='none'}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                className="profile-signout"
+                onClick={() => { logout(); setShowProfile(false) }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
                   <polyline points="16 17 21 12 16 7"/>
                   <line x1="21" y1="12" x2="9" y2="12"/>
