@@ -1,5 +1,5 @@
 // Dobby Studio — Internationalisation (i18n)
-// Supports: en (English), hi (Hindi), gu (Gujarati)
+// Supports: en (English), hi (Hindi), gu (Gujarati), mr (Marathi)
 // Usage: import { t, setLang, getLang } from './i18n.js'
 
 const STRINGS = {
@@ -10,6 +10,7 @@ const STRINGS = {
     'header.redo':      'Redo',
     'header.share':     'Share',
     'header.upgrade':   'Upgrade to Pro',
+    'header.dirty':     'Unsaved changes',
     // Sidebar
     'sidebar.sett':     'Sett Builder',
     'sidebar.weave':    'Weave',
@@ -19,7 +20,7 @@ const STRINGS = {
     'sidebar.gallery':  'My Designs',
     'sidebar.save':     'Save Design',
     'sidebar.threads':  'threads / repeat',
-    // Canvas
+    // Canvas / Exports
     'canvas.fabric':    'Fabric',
     'canvas.draft':     'Draft',
     'canvas.peg':       'Peg Plan',
@@ -30,6 +31,10 @@ const STRINGS = {
     'canvas.pdf':       '⬇ PDF Sheet',
     'canvas.share':     '🔗 Share',
     'canvas.copied':    '✓ Copied!',
+    'export.png':       'Download PNG',
+    'export.json':      'Download JSON',
+    'export.wif':       'Download WIF (loom file)',
+    'export.pdf':       'PDF Tech Sheet',
     // Chat
     'chat.placeholder': 'Describe your fabric…',
     'chat.send':        'Send',
@@ -59,6 +64,7 @@ const STRINGS = {
     'header.redo':      'फिर करें',
     'header.share':     'शेयर करें',
     'header.upgrade':   'प्रो में अपग्रेड करें',
+    'header.dirty':     'असहेजे बदलाव',
     'sidebar.sett':     'सेट बिल्डर',
     'sidebar.weave':    'बुनाई',
     'sidebar.ts':       'धागे का आकार',
@@ -67,17 +73,18 @@ const STRINGS = {
     'sidebar.gallery':  'मेरे डिज़ाइन',
     'sidebar.save':     'डिज़ाइन सेव करें',
     'sidebar.threads':  'धागे / दोहराव',
-    'canvas.fabric':    'कपड़ा',
+    'canvas.fabric':    'कपड़ा',
     'canvas.draft':     'ड्राफ्ट',
     'canvas.peg':       'पेग प्लान',
     'canvas.drape':     '3D ड्रेप',
-    'canvas.png':       '⬇ PNG',
-    'canvas.json':      '⬇ JSON',
-    'canvas.wif':       '⬇ WIF',
-    'canvas.pdf':       '⬇ PDF शीट',
-    'canvas.share':     '🔗 शेयर',
-    'canvas.copied':    '✓ कॉपी हुआ!',
-    'chat.placeholder': 'अपने कपड़े का वर्णन करें…',
+    'canvas.png':       '⬇ PNG', 'canvas.json': '⬇ JSON',
+    'canvas.wif':       '⬇ WIF',  'canvas.pdf':  '⬇ PDF शीट',
+    'canvas.share':     '🔗 शेयर', 'canvas.copied': '✓ कॉपी हुआ!',
+    'export.png':       'PNG डाउनलोड',
+    'export.json':      'JSON डाउनलोड',
+    'export.wif':       'WIF डाउनलोड (लूम फ़ाइल)',
+    'export.pdf':       'PDF तकनीकी शीट',
+    'chat.placeholder': 'अपने कपड़े का वर्णन करें…',
     'chat.send':        'भेजें',
     'chat.remaining':   'कॉल आज बाकी',
     'status.ready':     'तैयार',
@@ -86,21 +93,22 @@ const STRINGS = {
     'login.title':      'डॉबी स्टूडियो में आपका स्वागत है',
     'login.google':     'Google से जारी रखें',
     'login.demo':       'डेमो मोड आज़माएं',
-    'login.tagline':    'AI-संचालित कपड़ा डिज़ाइन',
+    'login.tagline':    'AI-संचालित कपड़ा डिज़ाइन',
     'landing.enter':    'स्टूडियो में प्रवेश करें',
-    'landing.skip':     'छोड़ें',
+    'landing.skip':     'छोड़ें',
     'landing.demo':     '🎯 अपनी मिल के लिए डेमो मांगें',
-    'landing.community':'Ravelry / Spoonflower समुदाय से जुड़ें',
+    'landing.community':'रावलरी / स्पूनफ्लावर समुदाय से जुड़ें',
     'upgrade.title':    'डॉबी प्रो में अपग्रेड करें',
     'upgrade.cta':      'अभी अपग्रेड करें',
     'upgrade.dismiss':  'बाद में',
   },
   gu: {
-    'app.name':         'ડૉબી સ્ટુડિયો',
+    'app.name':         'ડૉબી સ્તુડિયો',
     'header.undo':      'પૂર્વ-ક્રિયા',
     'header.redo':      'ફરીથી કરો',
     'header.share':     'શેર કરો',
     'header.upgrade':   'પ્રો માં અપગ્રેડ',
+    'header.dirty':     'અસચવાયલા બદલાવ',
     'sidebar.sett':     'સેટ બિલ્ડર',
     'sidebar.weave':    'વણાટ',
     'sidebar.ts':       'દોરાનું કદ',
@@ -113,40 +121,88 @@ const STRINGS = {
     'canvas.draft':     'ડ્રાફ્ટ',
     'canvas.peg':       'પેગ પ્લાન',
     'canvas.drape':     '3D ડ્રેપ',
-    'canvas.png':       '⬇ PNG',
-    'canvas.json':      '⬇ JSON',
-    'canvas.wif':       '⬇ WIF',
-    'canvas.pdf':       '⬇ PDF શીટ',
-    'canvas.share':     '🔗 શેર',
-    'canvas.copied':    '✓ કૉપિ!',
+    'canvas.png':       '⬇ PNG', 'canvas.json': '⬇ JSON',
+    'canvas.wif':       '⬇ WIF',  'canvas.pdf':  '⬇ PDF શીટ',
+    'canvas.share':     '🔗 શેર', 'canvas.copied': '✓ કૉપિ!',
+    'export.png':       'PNG ડાઉનલોડ',
+    'export.json':      'JSON ડાઉનલોડ',
+    'export.wif':       'WIF ડાઉનલોડ (લૂમ ફાઇલ)',
+    'export.pdf':       'PDF તકનીકી શીટ',
     'chat.placeholder': 'તમારા કાપડનું વર્ણન કરો…',
     'chat.send':        'મોકલો',
     'chat.remaining':   'કૉલ આજે બાકી',
     'status.ready':     'તૈયાર',
     'status.threads':   'દોરા',
     'status.shaft':     '-શાફ્ટ',
-    'login.title':      'ડૉબી સ્ટુડિયોમાં આપનું સ્વાગત છે',
+    'login.title':      'ડૉબી સ્તુડિયોમાં આપનું સ્વાગત છે',
     'login.google':     'Google સાથે ચાલુ રાખો',
     'login.demo':       'ડેમો મોડ અજમાવો',
     'login.tagline':    'AI-સંચાલિત કાપડ ડિઝાઇન',
-    'landing.enter':    'સ્ટુડિયોમાં પ્રવેશ',
+    'landing.enter':    'સ્તુડિયોમાં પ્રવેશ',
     'landing.skip':     'છોડો',
     'landing.demo':     '🎯 તમારી મિલ માટે ડેમો માગો',
-    'landing.community':'Ravelry / Spoonflower સમુદાયમાં જોડાઓ',
+    'landing.community':'રાવલરી / સ્પૂનફ્લાવર સમુદાયમાં જોડાઓ',
     'upgrade.title':    'ડૉબી પ્રો માં અપગ્રેડ',
     'upgrade.cta':      'હમણાં અપગ્રેડ',
     'upgrade.dismiss':  'પછી',
-  }
+  },
+  mr: {
+    // Marathi locale — Phase G
+    'app.name':         'डॉबी स्टुडिओ',
+    'header.undo':      'मागे जा',
+    'header.redo':      'पुन्हा करा',
+    'header.share':     'शेअर करा',
+    'header.upgrade':   'प्रो मध्ये अपग्रेड करा',
+    'header.dirty':     'न सेव्ह केलेले बदल',
+    'sidebar.sett':     'सेट बिल्डर',
+    'sidebar.weave':    'विणणे',
+    'sidebar.ts':       'दोराचा आकार',
+    'sidebar.reps':     'पुनरावृत्ती',
+    'sidebar.presets':  'प्रीसेट',
+    'sidebar.gallery':  'माझे डिझाइन',
+    'sidebar.save':     'डिझाइन सेव्हा',
+    'sidebar.threads':  'दोरे / पुनरावृत्ती',
+    'canvas.fabric':    'कापड़',
+    'canvas.draft':     'ड्राफ्ट',
+    'canvas.peg':       'पेग प्लान',
+    'canvas.drape':     '3D ड्रेप',
+    'canvas.png':       '⬇ PNG', 'canvas.json': '⬇ JSON',
+    'canvas.wif':       '⬇ WIF',  'canvas.pdf':  '⬇ PDF पत्रक',
+    'canvas.share':     '🔗 शेअर', 'canvas.copied': '✓ कॉपी केले!',
+    'export.png':       'PNG डाउनलोड',
+    'export.json':      'JSON डाउनलोड',
+    'export.wif':       'WIF डाउनलोड (लूम फाइल)',
+    'export.pdf':       'PDF तांत्रिक पत्रक',
+    'chat.placeholder': 'तुमच्या कापड़ाचे वर्णन करा…',
+    'chat.send':        'पाठवा',
+    'chat.remaining':   'कॉल आज शिल्लक',
+    'status.ready':     'तयार',
+    'status.threads':   'दोरे',
+    'status.shaft':     '-शाफ्ट',
+    'login.title':      'डॉबी स्टुडिओमध्ये आपले स्वागत',
+    'login.google':     'Google सह पुढे चला',
+    'login.demo':       'डेमो मोड वापरा',
+    'login.tagline':    'AI-चालित कापड़ डिझाइन',
+    'landing.enter':    'स्टुडिओमध्ये प्रवेश करा',
+    'landing.skip':     'वगळा',
+    'landing.demo':     '🎯 तुमच्या मिलसाठी डेमो मागवा',
+    'landing.community':'रावलरी / स्पूनफ्लावर समुदायात सहभागी व्हा',
+    'upgrade.title':    'डॉबी प्रोमध्ये अपग्रेड करा',
+    'upgrade.cta':      'आता अपग्रेड करा',
+    'upgrade.dismiss':  'नंतर',
+  },
 }
 
-let currentLang = localStorage.getItem('dobby-lang') || 'en'
+let currentLang = (() => {
+  try { return localStorage.getItem('dobby-lang') || 'en' } catch { return 'en' }
+})()
 
 export function getLang() { return currentLang }
 
 export function setLang(lang) {
   if (!STRINGS[lang]) return
   currentLang = lang
-  localStorage.setItem('dobby-lang', lang)
+  try { localStorage.setItem('dobby-lang', lang) } catch { /* quota */ }
   window.dispatchEvent(new CustomEvent('dobby-lang-change', { detail: lang }))
 }
 
@@ -155,7 +211,8 @@ export function t(key) {
 }
 
 export const SUPPORTED_LANGS = [
-  { code: 'en', label: 'English', flag: '🇬🇧' },
-  { code: 'hi', label: 'हिंदी',   flag: '🇮🇳' },
-  { code: 'gu', label: 'ગુજરાતી', flag: '🇮🇳' },
+  { code: 'en', label: 'English',    flag: '🇬🇧' },
+  { code: 'hi', label: 'हिंदी',       flag: '🇮🇳' },
+  { code: 'gu', label: 'ગુજરાતી',    flag: '🇮🇳' },
+  { code: 'mr', label: 'मराठी',       flag: '🇮🇳' },
 ]
