@@ -1,4 +1,5 @@
 export const PRESETS = [
+  // ── Classic tartans ───────────────────────────────────────────────────────
   { name:'Royal Stewart', meta:'Classic red',
     sett:[{c:'#cc1122',n:6},{c:'#111111',n:2},{c:'#cc1122',n:2},{c:'#111111',n:2},
           {c:'#006633',n:4},{c:'#111111',n:2},{c:'#ffffff',n:2},{c:'#111111',n:2},
@@ -24,4 +25,18 @@ export const PRESETS = [
   { name:'Bold Navy', meta:'Contemporary',
     sett:[{c:'#1a2a5a',n:8},{c:'#c0392b',n:4},{c:'#1a2a5a',n:4},
           {c:'#ffffff',n:2},{c:'#1a2a5a',n:4}]},
+
+  // ── Textile industry niche presets ────────────────────────────────────────
+  { name:'School Uniform Navy', meta:'Institutional',
+    sett:[{c:'#1a2f5e',n:12},{c:'#ffffff',n:2},{c:'#1a2f5e',n:8},{c:'#c8a951',n:2}],
+    weave:'twill22' },
+  { name:'Classic Shirting Blue', meta:'Casual shirting',
+    sett:[{c:'#d0dff0',n:16},{c:'#4a7fc1',n:2},{c:'#d0dff0',n:8},{c:'#2a5fa0',n:1}],
+    weave:'plain' },
+  { name:'Heritage Suiting', meta:'Worsted suiting',
+    sett:[{c:'#2c2c2c',n:14},{c:'#8b7355',n:3},{c:'#1a1a1a',n:10},{c:'#6b5a40',n:2}],
+    weave:'twill22' },
+  { name:'Home Linen Weave', meta:'Interior textiles',
+    sett:[{c:'#e8dcc8',n:12},{c:'#c4a882',n:4},{c:'#d4c4a8',n:8},{c:'#a89070',n:2}],
+    weave:'plain' },
 ]
