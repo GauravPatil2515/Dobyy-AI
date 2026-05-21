@@ -1,45 +1,49 @@
+// ChatPanel — chat UI with loading lock, command router integration, and image analysis.
 import { useState, useRef, useEffect } from 'react'
-import { useAuth } from '../contexts/AuthContext.jsx'
+import { useAuth }         from '../contexts/AuthContext.jsx'
 import { useSubscription } from '../contexts/SubscriptionContext.jsx'
+import { processCommand }  from '../services/chatService.js'
 import { fileToBase64, analyzeImageWithGroq, buildAnalysisMessage } from '../utils/imageAnalyzer'
-import { t, getLang } from '../utils/i18n.js'
+import { t, getLang }      from '../utils/i18n.js'
 
 const WEAVE_LABELS = {
   twill22:'2/2 Twill', twill21:'2/1 Twill',
   plain:'Plain Weave', satin5:'5-End Satin',
-  twill31:'3/1 Twill', basket2:'Basket Weave',
-  hopsack:'Hopsack'
+  twill31:'3/1 Twill', basket2:'Basket Weave', hopsack:'Hopsack'
 }
 
 function getContextChips(state) {
-  const base = ['darker tones', 'lighter tones', 'complementary colors', 'muted palette']
   const weaveChips = []
   if (state.weave !== 'plain')   weaveChips.push('switch to plain weave')
   if (state.weave !== 'twill22') weaveChips.push('2/2 twill')
   if (state.weave !== 'satin5')  weaveChips.push('satin weave')
   const settChips = []
-  if (state.reps < 6)         settChips.push('more repeats')
-  if (state.ts > 6)           settChips.push('make it finer')
-  if (state.ts < 16)          settChips.push('make it bolder')
-  if (state.sett.length < 6)  settChips.push('add more stripes')
-  const presets = ['Royal Stewart', 'Black Watch', 'autumn forest tartan', 'pastel spring']
-  return [...settChips.slice(0,2), ...weaveChips.slice(0,1), ...base.slice(0,2), ...presets.slice(0,3)].slice(0, 9)
+  if (state.reps < 6)           settChips.push('more repeats')
+  if (state.ts > 6)             settChips.push('make it finer')
+  if (state.ts < 16)            settChips.push('make it bolder')
+  if (state.sett.length < 6)    settChips.push('add more stripes')
+  const toneChips  = ['darker tones', 'lighter tones', 'muted palette', 'more contrast']
+  const quickDesign = ['Royal Stewart', 'Black Watch', 'shirting', 'surprise me']
+  return [...settChips.slice(0,2), ...weaveChips.slice(0,1), ...toneChips.slice(0,2), ...quickDesign.slice(0,2)].slice(0, 9)
 }
 
-export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitExceeded, remainingCalls, isPro }) {
-  const { isAuthenticated } = useAuth()
+/**
+ * @param {{ state: import('../domain/fabricTypes.js').FabricState, dispatch: Function, loading: boolean, onLimitExceeded: Function, remainingCalls: number, isPro: boolean }} props
+ */
+export default function ChatPanel({ state, dispatch, loading: _loading, onLimitExceeded, remainingCalls, isPro }) {
+  const { isAuthenticated }              = useAuth()
   const { canMakeApiCall, incrementApiCall } = useSubscription()
-  const [input,  setInput]  = useState('')
-  const [lang, setLangState] = useState(getLang())
+  const [input,    setInput]    = useState('')
+  const [isSending, setIsSending] = useState(false)  // FIX: loading lock prevents double-submit
+  const [lang,     setLangState] = useState(getLang())
+  const [intent,   setIntent]   = useState('')
   const [msgs, setMsgs] = useState([{
     role: 'ai',
-    text: 'Hello! I\'m Dobby, your AI fabric designer.\n\nDescribe any tartan or fabric — I\'ll design it live. Try "autumn forest tartan" or "ocean blues and white" ❖'
+    text: "Hello! I'm Dobby, your AI fabric designer.\n\nDescribe any tartan or fabric — I'll design it live. Try \"autumn forest tartan\" or \"ocean blues\" ❖"
   }])
-  const [intent, setIntent] = useState('')
   const msgsRef    = useRef(null)
   const fileInputRef = useRef(null)
 
-  // Re-render on language change so placeholder text updates live
   useEffect(() => {
     const onLangChange = (e) => setLangState(e.detail)
     window.addEventListener('dobby-lang-change', onLangChange)
@@ -47,47 +51,69 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
   }, [])
 
   useEffect(() => {
-    if (msgsRef.current)
-      msgsRef.current.scrollTop = msgsRef.current.scrollHeight
+    if (msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight
   }, [msgs])
 
+  const chatHistory = useRef([])   // keep LLM message history separate from display msgs
+
   const send = async (text) => {
-    if (!text.trim() || loading) return
+    const trimmed = text.trim()
+    if (!trimmed || isSending) return   // FIX: hard lock while request in-flight
 
     if (!canMakeApiCall()) {
-      setMsgs(m => [...m, { role:'user', text }, {
-        role:'ai',
-        text: "You've reached your daily limit of 5 free designs. Upgrade to Pro for unlimited designs! ✨"
+      setMsgs(m => [...m, { role:'user', text: trimmed }, {
+        role:'ai', text: "You've reached your daily limit of 5 free designs. Upgrade to Pro for unlimited designs! ✨"
       }])
       setInput('')
       onLimitExceeded?.()
       return
     }
 
-    setMsgs(m => [...m, { role:'user', text }])
+    setMsgs(m => [...m, { role:'user', text: trimmed }])
     setInput('')
+    setIsSending(true)
     setMsgs(m => [...m, { role:'ai', text:'...', isTyping: true }])
     await incrementApiCall()
 
-    await onPrompt(text, ({ reply, intent }) => {
+    // Update LLM chat history (last 10 turns)
+    chatHistory.current = [...chatHistory.current, { role:'user', content: trimmed }].slice(-10)
+
+    // FIX: use chatService.processCommand — rule engine first, LLM if needed
+    const result = await processCommand(trimmed, state, chatHistory.current)
+
+    if (result.ok) {
+      dispatch({ type: 'APPLY', newState: result.data.state })
+      chatHistory.current = [...chatHistory.current,
+        { role:'assistant', content: result.data.reply }
+      ].slice(-10)
       setMsgs(m => {
         const filtered = m.filter(msg => !msg.isTyping)
-        return [...filtered, { role:'ai', text: reply }]
+        return [...filtered, { role:'ai', text: result.data.reply }]
       })
-      setIntent(intent)
-    })
+      setIntent(result.data.intent || '')
+    } else {
+      // Show typed error message from chatService
+      setMsgs(m => {
+        const filtered = m.filter(msg => !msg.isTyping)
+        return [...filtered, { role:'ai', text: result.message || 'Something went wrong.' }]
+      })
+      if (result.errorCode === 'RATE_LIMIT') onLimitExceeded?.()
+    }
+
+    setIsSending(false)
   }
 
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0]
-    if (!file || loading) return
+    if (!file || isSending) return
 
     const reader = new FileReader()
     reader.onload = async (event) => {
       try {
         const dataUrl = event.target?.result
-        setMsgs(m => [...m, { role:'user', text: '📷 Analyzing fabric…', image: dataUrl }])
-        setMsgs(m => [...m, { role:'ai', text:'...', isTyping: true }])
+        setMsgs(m => [...m, { role:'user', text:'📷 Analyzing fabric…', image: dataUrl }])
+        setIsSending(true)
+        setMsgs(m => [...m, { role:'ai', text:'Analyzing fabric pattern…', isTyping: true }])
 
         const base64 = await fileToBase64(file)
         const result = await analyzeImageWithGroq(base64)
@@ -95,19 +121,11 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
         if (result.sett?.length > 0) {
           dispatch({
             type: 'APPLY',
-            newState: {
-              ...state,
-              sett: result.sett,
-              weave: result.weave || state.weave,
-              activePreset: -1,
-            }
+            newState: { ...state, sett: result.sett, weave: result.weave || state.weave, activePreset: -1 }
           })
         }
 
-        const analysisMsg = buildAnalysisMessage(
-          result.sett, result.weave, result.confidence, result.description
-        )
-
+        const analysisMsg = buildAnalysisMessage(result.sett, result.weave, result.confidence, result.description)
         setMsgs(m => {
           const filtered = m.filter(msg => !msg.isTyping)
           return [...filtered, { role:'ai', text: analysisMsg }]
@@ -119,29 +137,32 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
           const filtered = m.filter(msg => !msg.isTyping)
           return [...filtered, { role:'ai', text: '❌ Image analysis failed. Try a clearer photo of the fabric.' }]
         })
+      } finally {
+        setIsSending(false)
       }
     }
     reader.readAsDataURL(file)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  const tsPercent  = ((state.ts - 4) / 18 * 100).toFixed(0)
+  const isLoading = isSending
+  const tsPercent  = ((state.ts  - 4)  / 18 * 100).toFixed(0)
   const repPercent = ((state.reps - 1) / 11 * 100).toFixed(0)
-  const chips      = getContextChips(state)
+  const chips = getContextChips(state)
 
   return (
     <div className="chat-panel">
       <div className="chat-header">
         <div className="chat-title">Design Assistant</div>
         <div className="chat-sub">
-          {loading ? '⟳ Generating design…' : (
+          {isLoading ? '⟳ Generating design…' : (
             <>
               Powered by Groq · llama3-70b
               {!isPro && (
                 <span style={{
                   marginLeft:8, padding:'2px 8px',
                   background: remainingCalls <= 1 ? '#fee2e2' : '#fef3c7',
-                  color: remainingCalls <= 1 ? '#dc2626' : '#92400e',
+                  color:      remainingCalls <= 1 ? '#dc2626' : '#92400e',
                   borderRadius:4, fontSize:'0.75rem', fontWeight:500
                 }}>
                   {remainingCalls} {t('chat.remaining')}
@@ -159,14 +180,15 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
         </div>
       </div>
 
+      {/* Live State Feed */}
       <div className="live-feed">
         <div className="feed-title">Live State</div>
         <div className="feed-body">
           <div className="feed-row">
             <span className="feed-key">Colors</span>
             <div className="feed-dots">
-              {state.sett.map((s,i) => (
-                <div key={i} className="feed-dot" style={{background:s.c}} title={`${s.n}t`}/>
+              {state.sett.map((s, i) => (
+                <div key={i} className="feed-dot" style={{ background: s.c }} title={`${s.n}t`} />
               ))}
             </div>
           </div>
@@ -176,12 +198,12 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
           </div>
           <div className="feed-row">
             <span className="feed-key">{t('sidebar.ts')}</span>
-            <div className="feed-bar"><div className="feed-fill" style={{width:`${tsPercent}%`}}/></div>
+            <div className="feed-bar"><div className="feed-fill" style={{ width:`${tsPercent}%` }}/></div>
             <span className="feed-val">{state.ts}px</span>
           </div>
           <div className="feed-row">
             <span className="feed-key">{t('sidebar.reps')}</span>
-            <div className="feed-bar"><div className="feed-fill" style={{width:`${repPercent}%`}}/></div>
+            <div className="feed-bar"><div className="feed-fill" style={{ width:`${repPercent}%` }}/></div>
             <span className="feed-val">{state.reps}×</span>
           </div>
         </div>
@@ -189,6 +211,7 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
 
       {intent && <div className="intent-chip">↳ {intent}</div>}
 
+      {/* Messages */}
       <div className="chat-msgs" ref={msgsRef}>
         {msgs.map((m, i) => (
           <div key={i} className={`msg ${m.role}`}>
@@ -199,7 +222,7 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
                 <>
                   {m.image && (
                     <img src={m.image} alt="uploaded fabric"
-                      style={{maxWidth:'100%', maxHeight:160, borderRadius:6, marginBottom:6, objectFit:'cover'}}/>
+                      style={{ maxWidth:'100%', maxHeight:160, borderRadius:6, marginBottom:6, objectFit:'cover' }} />
                   )}
                   {m.text}
                 </>
@@ -209,25 +232,28 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
         ))}
       </div>
 
+      {/* Context chips — FIX: wired directly to processCommand via send() */}
       <div className="chips">
         {chips.map(c => (
-          <button key={c} className="chip" disabled={loading} onClick={() => send(c)}>{c}</button>
+          <button key={c} className="chip" disabled={isLoading} onClick={() => send(c)}>{c}</button>
         ))}
       </div>
 
+      {/* Input area */}
       <div className="chat-input">
         <div className="input-wrap">
           <textarea
             value={input}
             rows={1}
-            placeholder={loading ? 'Generating…' : t('chat.placeholder')}
-            disabled={loading}
+            placeholder={isLoading ? 'Generating…' : t('chat.placeholder')}
+            disabled={isLoading}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => {
-              if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); send(input) }
-            }}/>
-          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} style={{display:'none'}}/>
-          <button className="btn-attach" disabled={loading}
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) }
+            }}
+          />
+          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} style={{ display:'none' }} />
+          <button className="btn-attach" disabled={isLoading}
             onClick={() => fileInputRef.current?.click()} title="Upload fabric image">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -235,8 +261,8 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
               <line x1="12" y1="3" x2="12" y2="15"/>
             </svg>
           </button>
-          <button className="btn-send" disabled={loading} onClick={() => send(input)}>
-            {loading ? (
+          <button className="btn-send" disabled={isLoading} onClick={() => send(input)}>
+            {isLoading ? (
               <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="10" strokeDasharray="30" strokeDashoffset="10">
                   <animateTransform attributeName="transform" type="rotate"

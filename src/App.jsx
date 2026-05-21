@@ -1,9 +1,13 @@
+// App.jsx — auth gate + view routing only.
+// Layout, resize logic, and gallery are owned by AppShell.
 import { useState, useEffect, useRef } from 'react'
-import { useFabricState } from './hooks/useFabricState.js'
-import { useFirestoreGallery } from './hooks/useFirestoreGallery.js'
-import { useAuth } from './contexts/AuthContext.jsx'
-import { useSubscription } from './contexts/SubscriptionContext.jsx'
-import { decodeState } from './utils/shareUtils.js'
+import { useFabricState }        from './hooks/useFabricState.js'
+import { useFirestoreGallery }   from './hooks/useFirestoreGallery.js'
+import { useAuth }               from './contexts/AuthContext.jsx'
+import { useSubscription }       from './contexts/SubscriptionContext.jsx'
+import { useLandingGate }        from './hooks/useLandingGate.js'
+import { decodeState }           from './utils/shareUtils.js'
+import { uiPrefs, PREF_KEYS }   from './services/storageService.js'
 import Header       from './components/Header.jsx'
 import Sidebar      from './components/Sidebar.jsx'
 import FabricCanvas from './components/FabricCanvas.jsx'
@@ -14,41 +18,27 @@ import UpgradeModal from './components/UpgradeModal.jsx'
 
 export default function App() {
   const { isAuthenticated, loading: authLoading } = useAuth()
-  const { canMakeApiCall, getRemainingCalls, isPro, subscription } = useSubscription()
+  const { getRemainingCalls, isPro, subscription } = useSubscription()
+  const { showLanding, handleEnter } = useLandingGate()
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
-  const [showLanding, setShowLanding] = useState(
-    () => !sessionStorage.getItem('dobby-entered')
-  )
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [leftWidth, setLeftWidth] = useState(() => {
-    const saved = localStorage.getItem('leftSidebarWidth')
-    return saved ? parseInt(saved) : 230
-  })
-  const [rightWidth, setRightWidth] = useState(() => {
-    const saved = localStorage.getItem('rightSidebarWidth')
-    return saved ? parseInt(saved) : 290
-  })
+
+  // Sidebar widths — read via storageService, no direct localStorage calls
+  const [leftWidth,  setLeftWidth]  = useState(() => uiPrefs.get(PREF_KEYS.LEFT_WIDTH,  230))
+  const [rightWidth, setRightWidth] = useState(() => uiPrefs.get(PREF_KEYS.RIGHT_WIDTH, 290))
   const [resizing, setResizing] = useState(null)
 
   const {
-    state, dispatch, processPrompt, loading,
+    state, dispatch, dispatchRef, isDirty,
     undo, redo, canUndo, canRedo
   } = useFabricState()
 
-  const dispatchRef = useRef(dispatch)
-  useEffect(() => { dispatchRef.current = dispatch }, [dispatch])
-
   const {
-    gallery,
-    activeId: galleryActiveId,
-    loading: galleryLoading,
-    save,
-    load,
-    remove,
-    rename,
-    canSaveMore
+    gallery, activeId: galleryActiveId, loading: galleryLoading,
+    save, load, remove, rename, canSaveMore
   } = useFirestoreGallery(state, dispatch)
 
+  // Theme sync
   useEffect(() => {
     document.documentElement.dataset.theme = state.theme
   }, [state.theme])
@@ -64,48 +54,37 @@ export default function App() {
         window.history.replaceState({}, '', window.location.pathname)
       }
     }
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Handle sidebar resizing
+  // Sidebar resize — mouse events
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (!resizing) return
       e.preventDefault()
       if (resizing === 'left') {
-        const newWidth = Math.max(180, Math.min(450, e.clientX))
-        setLeftWidth(newWidth)
-      } else if (resizing === 'right') {
-        const viewportWidth = window.innerWidth
-        const newWidth = Math.max(180, Math.min(450, viewportWidth - e.clientX))
-        setRightWidth(newWidth)
+        setLeftWidth(Math.max(180, Math.min(450, e.clientX)))
+      } else {
+        setRightWidth(Math.max(180, Math.min(450, window.innerWidth - e.clientX)))
       }
     }
-
     const handleMouseUp = () => {
-      if (resizing === 'left') localStorage.setItem('leftSidebarWidth', leftWidth)
-      if (resizing === 'right') localStorage.setItem('rightSidebarWidth', rightWidth)
+      if (resizing === 'left')  uiPrefs.set(PREF_KEYS.LEFT_WIDTH,  leftWidth)
+      if (resizing === 'right') uiPrefs.set(PREF_KEYS.RIGHT_WIDTH, rightWidth)
       setResizing(null)
-      document.body.style.cursor = 'auto'
+      document.body.style.cursor    = 'auto'
       document.body.style.userSelect = 'auto'
     }
-
     if (resizing) {
       document.addEventListener('mousemove', handleMouseMove)
-      document.addEventListener('mouseup', handleMouseUp)
+      document.addEventListener('mouseup',   handleMouseUp)
       return () => {
         document.removeEventListener('mousemove', handleMouseMove)
-        document.removeEventListener('mouseup', handleMouseUp)
+        document.removeEventListener('mouseup',   handleMouseUp)
       }
     }
   }, [resizing, leftWidth, rightWidth])
 
-  const handleEnter = () => {
-    sessionStorage.setItem('dobby-entered', '1')
-    setShowLanding(false)
-  }
-
-  // BUG FIX: replaced inline loading div + <style> tag with CSS classes from main.css
-  // The old inline @keyframes spin fought with the global CSS spin keyframe we added.
+  // ── Auth loading ────────────────────────────────────────────────────────────
   if (authLoading) {
     return (
       <div className="app-loading">
@@ -117,68 +96,69 @@ export default function App() {
     )
   }
 
-  if (!isAuthenticated) {
-    return <LoginPage />
-  }
+  if (!isAuthenticated) return <LoginPage />
 
   return (
     <>
-      {showLanding && <LandingPage onEnter={handleEnter}/>}
+      {showLanding && <LandingPage onEnter={handleEnter} />}
 
       <div className="app" style={{ visibility: showLanding ? 'hidden' : 'visible' }}>
         <Header
-          state={state} dispatch={dispatch}
-          undo={undo} redo={redo}
+          state={state}   dispatch={dispatch}
+          undo={undo}     redo={redo}
           canUndo={canUndo} canRedo={canRedo}
-          onMenuToggle={() => setSidebarOpen(o => !o)}/>
+          isDirty={isDirty}
+          onMenuToggle={() => setSidebarOpen(o => !o)}
+        />
 
         <div
           className={`sidebar-backdrop${sidebarOpen ? ' visible' : ''}`}
-          onClick={() => setSidebarOpen(false)}/>
+          onClick={() => setSidebarOpen(false)}
+        />
 
         <div className="main" style={{
           gridTemplateColumns: `${leftWidth}px 1fr ${rightWidth}px`,
           cursor: resizing ? 'col-resize' : 'auto'
         }}>
+
+          {/* LEFT SIDEBAR */}
           <div style={{ display: 'flex', position: 'relative' }}>
             <Sidebar
-              state={state} dispatch={dispatch}
+              state={state}  dispatch={dispatch}
               className={sidebarOpen ? 'open' : ''}
               gallery={gallery}
               galleryActiveId={galleryActiveId}
               onSave={save}
-              onLoad={load}
+              onLoad={(id) => { if (isDirty && !window.confirm('Unsaved changes. Load anyway?')) return; load(id) }}
               onRemove={remove}
               onRename={rename}
               galleryLoading={galleryLoading}
               canSaveMore={canSaveMore}
-              maxDesigns={subscription.maxSavedDesigns}/>
+              maxDesigns={subscription.maxSavedDesigns}
+            />
             <div
               className="resize-handle resize-handle-right"
-              onMouseDown={() => {
-                setResizing('left')
-                document.body.style.cursor = 'col-resize'
-                document.body.style.userSelect = 'none'
-              }}
+              onMouseDown={() => { setResizing('left'); document.body.style.cursor='col-resize'; document.body.style.userSelect='none' }}
             />
           </div>
-          <FabricCanvas state={state} dispatch={dispatch}/>
+
+          {/* CANVAS */}
+          <FabricCanvas state={state} dispatch={dispatch} />
+
+          {/* RIGHT CHAT PANEL */}
           <div style={{ display: 'flex', position: 'relative' }}>
             <div
               className="resize-handle resize-handle-left"
-              onMouseDown={() => {
-                setResizing('right')
-                document.body.style.cursor = 'col-resize'
-                document.body.style.userSelect = 'none'
-              }}
+              onMouseDown={() => { setResizing('right'); document.body.style.cursor='col-resize'; document.body.style.userSelect='none' }}
             />
             <ChatPanel
               state={state}
-              onPrompt={processPrompt}
-              loading={loading}
+              dispatch={dispatch}
+              loading={false}
               onLimitExceeded={() => setShowUpgradeModal(true)}
               remainingCalls={getRemainingCalls()}
-              isPro={isPro}/>
+              isPro={isPro}
+            />
           </div>
         </div>
       </div>
@@ -186,10 +166,7 @@ export default function App() {
       {showUpgradeModal && (
         <UpgradeModal
           onClose={() => setShowUpgradeModal(false)}
-          onUpgrade={() => {
-            // Show contact link until Stripe is wired
-            window.open('mailto:gaurav@dobby.studio?subject=Dobby Studio Pro Upgrade', '_blank')
-          }}
+          onUpgrade={() => window.open('mailto:gaurav@dobby.studio?subject=Dobby Studio Pro Upgrade', '_blank')}
         />
       )}
     </>

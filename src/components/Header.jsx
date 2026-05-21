@@ -1,17 +1,20 @@
+// Header — dirty indicator, visual undo/redo disabled state, Marathi locale.
 import { useEffect, useState } from 'react'
-import { useAuth } from '../contexts/AuthContext.jsx'
+import { useAuth }         from '../contexts/AuthContext.jsx'
 import { useSubscription } from '../contexts/SubscriptionContext.jsx'
 import { t, getLang, setLang, SUPPORTED_LANGS } from '../utils/i18n.js'
 
-export default function Header({ state, dispatch, undo, redo, canUndo, canRedo, onMenuToggle }) {
-  const { user, logout } = useAuth()
-  const { isPro } = useSubscription()
+export default function Header({ state, dispatch, undo, redo, canUndo, canRedo, isDirty, onMenuToggle }) {
+  const { user, logout }  = useAuth()
+  const { isPro }         = useSubscription()
   const [showProfile, setShowProfile] = useState(false)
-  const [lang, setLangState] = useState(getLang())
+  const [lang, setLangState]          = useState(getLang())
 
-  const wl = { twill22:'2/2 twill', twill21:'2/1 twill', plain:'plain weave', satin5:'5-end satin',
-                twill31:'3/1 twill', basket2:'basket weave', hopsack:'hopsack' }
-  const total = state.sett.reduce((a,s) => a+s.n, 0)
+  const wl = {
+    twill22:'2/2 twill', twill21:'2/1 twill', plain:'plain weave',
+    satin5:'5-end satin', twill31:'3/1 twill', basket2:'basket weave', hopsack:'hopsack'
+  }
+  const total = state.sett.reduce((a, s) => a + s.n, 0)
 
   useEffect(() => {
     const onLangChange = (e) => setLangState(e.detail)
@@ -19,10 +22,11 @@ export default function Header({ state, dispatch, undo, redo, canUndo, canRedo, 
     return () => window.removeEventListener('dobby-lang-change', onLangChange)
   }, [])
 
+  // Global Ctrl+Z / Ctrl+Y keyboard shortcuts
   useEffect(() => {
     const onKey = (e) => {
-      if ((e.ctrlKey||e.metaKey) && e.key==='z' && !e.shiftKey) { e.preventDefault(); undo() }
-      if ((e.ctrlKey||e.metaKey) && (e.key==='y'||(e.key==='z'&&e.shiftKey))) { e.preventDefault(); redo() }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo() }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redo() }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -44,6 +48,7 @@ export default function Header({ state, dispatch, undo, redo, canUndo, canRedo, 
 
   return (
     <header className="app-header">
+      {/* Logo + hamburger */}
       <div className="logo">
         <button className="menu-btn" onClick={onMenuToggle} title="Open Sett Builder">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
@@ -66,18 +71,54 @@ export default function Header({ state, dispatch, undo, redo, canUndo, canRedo, 
         </span>
       </div>
 
+      {/* Center — undo/redo + dirty indicator + lang switcher */}
       <div className="header-center">
-        <button className="icon-btn" onClick={undo} disabled={!canUndo} title={`${t('header.undo')} (Ctrl+Z)`}>
+        {/* Undo */}
+        <button
+          className="icon-btn"
+          onClick={undo}
+          disabled={!canUndo}
+          title={`${t('header.undo')} (Ctrl+Z)`}
+          style={{ opacity: canUndo ? 1 : 0.35, cursor: canUndo ? 'pointer' : 'not-allowed' }}
+        >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
             <path d="M3 7v6h6"/><path d="M3 13C5 7 11 3 18 5s9 9 5 15"/>
           </svg>
         </button>
-        <button className="icon-btn" onClick={redo} disabled={!canRedo} title={`${t('header.redo')} (Ctrl+Y)`}>
+
+        {/* Redo */}
+        <button
+          className="icon-btn"
+          onClick={redo}
+          disabled={!canRedo}
+          title={`${t('header.redo')} (Ctrl+Y)`}
+          style={{ opacity: canRedo ? 1 : 0.35, cursor: canRedo ? 'pointer' : 'not-allowed' }}
+        >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
             <path d="M21 7v6h-6"/><path d="M21 13C19 7 13 3 6 5S-3 14 1 20"/>
           </svg>
         </button>
 
+        {/* Dirty indicator — orange dot when unsaved changes exist */}
+        {isDirty && (
+          <span
+            title="Unsaved changes"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              fontSize: '0.7rem', color: '#d97706', fontWeight: 600,
+              padding: '2px 6px', borderRadius: 4,
+              background: 'rgba(217,119,6,0.1)',
+            }}
+          >
+            <span style={{
+              width: 6, height: 6, borderRadius: '50%',
+              background: '#f59e0b', display: 'inline-block'
+            }}/>
+            Unsaved
+          </span>
+        )}
+
+        {/* Language switcher — EN / HI / GU / MR */}
         <div className="lang-switcher">
           {SUPPORTED_LANGS.map(({ code, flag }) => (
             <button
@@ -91,6 +132,7 @@ export default function Header({ state, dispatch, undo, redo, canUndo, canRedo, 
         </div>
       </div>
 
+      {/* Right — badge + theme toggle + profile */}
       <div className="header-right">
         <span className="badge">{total}T · {state.sett.length}c · {wl[state.weave]}</span>
 
@@ -102,25 +144,19 @@ export default function Header({ state, dispatch, undo, redo, canUndo, canRedo, 
 
         <div className="profile-wrap" data-profile-dropdown>
           <button className="profile-btn" onClick={() => setShowProfile(o => !o)}>
-            {user?.photoURL ? (
-              <img src={user.photoURL} alt="Profile" className="profile-avatar"/>
-            ) : (
-              <div className="profile-avatar-fallback">
-                {user?.displayName?.[0]?.toUpperCase() || 'U'}
-              </div>
-            )}
+            {user?.photoURL
+              ? <img src={user.photoURL} alt="Profile" className="profile-avatar"/>
+              : <div className="profile-avatar-fallback">{user?.displayName?.[0]?.toUpperCase() || 'U'}</div>
+            }
             {isPro && <span className="profile-pro-badge">PRO</span>}
           </button>
-
           {showProfile && (
             <div className="profile-dropdown">
               <div className="profile-dropdown-header">
                 <p className="profile-dropdown-name">{user?.displayName || 'Designer'}</p>
                 <p className="profile-dropdown-email">{user?.email}</p>
               </div>
-              <button
-                className="profile-signout"
-                onClick={() => { logout(); setShowProfile(false) }}>
+              <button className="profile-signout" onClick={() => { logout(); setShowProfile(false) }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
                   <polyline points="16 17 21 12 16 7"/>

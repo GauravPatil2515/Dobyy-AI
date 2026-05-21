@@ -1,16 +1,15 @@
-// Dobby Studio — Internationalisation (i18n)
-// Supports: en (English), hi (Hindi), gu (Gujarati)
-// Usage: import { t, setLang, getLang } from './i18n.js'
+// Dobby Studio — i18n
+// Supports: en, hi, gu, mr
+import React from 'react'
 
 const STRINGS = {
   en: {
-    // Header
     'app.name':         'Dobby Studio',
     'header.undo':      'Undo',
     'header.redo':      'Redo',
     'header.share':     'Share',
     'header.upgrade':   'Upgrade to Pro',
-    // Sidebar
+    'header.unsaved':   'Unsaved',
     'sidebar.sett':     'Sett Builder',
     'sidebar.weave':    'Weave',
     'sidebar.ts':       'Thread Size',
@@ -19,7 +18,6 @@ const STRINGS = {
     'sidebar.gallery':  'My Designs',
     'sidebar.save':     'Save Design',
     'sidebar.threads':  'threads / repeat',
-    // Canvas
     'canvas.fabric':    'Fabric',
     'canvas.draft':     'Draft',
     'canvas.peg':       'Peg Plan',
@@ -30,25 +28,20 @@ const STRINGS = {
     'canvas.pdf':       '⬇ PDF Sheet',
     'canvas.share':     '🔗 Share',
     'canvas.copied':    '✓ Copied!',
-    // Chat
     'chat.placeholder': 'Describe your fabric…',
     'chat.send':        'Send',
     'chat.remaining':   'calls remaining today',
-    // Status
     'status.ready':     'Ready',
     'status.threads':   'threads',
     'status.shaft':     '-shaft',
-    // Login
     'login.title':      'Welcome to Dobby Studio',
     'login.google':     'Continue with Google',
     'login.demo':       'Try Demo Mode',
     'login.tagline':    'AI-powered fabric & tartan design',
-    // Landing
     'landing.enter':    'Enter Studio',
     'landing.skip':     'Skip intro',
     'landing.demo':     '🎯 Request a Demo for your Mill',
     'landing.community':'Join Ravelry / Spoonflower Community',
-    // Upgrade
     'upgrade.title':    'Upgrade to Dobby Pro',
     'upgrade.cta':      'Upgrade Now',
     'upgrade.dismiss':  'Maybe later',
@@ -59,6 +52,7 @@ const STRINGS = {
     'header.redo':      'फिर करें',
     'header.share':     'शेयर करें',
     'header.upgrade':   'प्रो में अपग्रेड करें',
+    'header.unsaved':   'असेव्ड',
     'sidebar.sett':     'सेट बिल्डर',
     'sidebar.weave':    'बुनाई',
     'sidebar.ts':       'धागे का आकार',
@@ -101,6 +95,7 @@ const STRINGS = {
     'header.redo':      'ફરીથી કરો',
     'header.share':     'શેર કરો',
     'header.upgrade':   'પ્રો માં અપગ્રેડ',
+    'header.unsaved':   'અસેવ્ડ',
     'sidebar.sett':     'સેટ બિલ્ડર',
     'sidebar.weave':    'વણાટ',
     'sidebar.ts':       'દોરાનું કદ',
@@ -136,7 +131,50 @@ const STRINGS = {
     'upgrade.title':    'ડૉબી પ્રો માં અપગ્રેડ',
     'upgrade.cta':      'હમણાં અપગ્રેડ',
     'upgrade.dismiss':  'પછી',
-  }
+  },
+  mr: {
+    'app.name':         'डॉबी स्टुडिओ',
+    'header.undo':      'मागे घ्या',
+    'header.redo':      'पुन्हा करा',
+    'header.share':     'शेअर करा',
+    'header.upgrade':   'प्रो वर अपग्रेड करा',
+    'header.unsaved':   'जतन नाही',
+    'sidebar.sett':     'सेट बिल्डर',
+    'sidebar.weave':    'विणकाम',
+    'sidebar.ts':       'धाग्याचा आकार',
+    'sidebar.reps':     'पुनरावृत्ती',
+    'sidebar.presets':  'प्रीसेट',
+    'sidebar.gallery':  'माझी डिझाइन्स',
+    'sidebar.save':     'डिझाइन जतन करा',
+    'sidebar.threads':  'धागे / पुनरावृत्ती',
+    'canvas.fabric':    'कापड',
+    'canvas.draft':     'ड्राफ्ट',
+    'canvas.peg':       'पेग प्लान',
+    'canvas.drape':     '3D ड्रेप',
+    'canvas.png':       '⬇ PNG',
+    'canvas.json':      '⬇ JSON',
+    'canvas.wif':       '⬇ WIF',
+    'canvas.pdf':       '⬇ PDF शीट',
+    'canvas.share':     '🔗 शेअर',
+    'canvas.copied':    '✓ कॉपी झाले!',
+    'chat.placeholder': 'तुमच्या कापडाचे वर्णन करा…',
+    'chat.send':        'पाठवा',
+    'chat.remaining':   'कॉल्स आज शिल्लक',
+    'status.ready':     'तयार',
+    'status.threads':   'धागे',
+    'status.shaft':     '-शाफ्ट',
+    'login.title':      'डॉबी स्टुडिओमध्ये आपले स्वागत',
+    'login.google':     'Google सह सुरू ठेवा',
+    'login.demo':       'डेमो मोड वापरा',
+    'login.tagline':    'AI-चालित कापड डिझाइन',
+    'landing.enter':    'स्टुडिओमध्ये प्रवेश करा',
+    'landing.skip':     'वगळा',
+    'landing.demo':     '🎯 तुमच्या मिलसाठी डेमो मागवा',
+    'landing.community':'Ravelry / Spoonflower समुदायात सामील व्हा',
+    'upgrade.title':    'डॉबी प्रो वर अपग्रेड करा',
+    'upgrade.cta':      'आत्ता अपग्रेड करा',
+    'upgrade.dismiss':  'नंतर',
+  },
 }
 
 let currentLang = localStorage.getItem('dobby-lang') || 'en'
@@ -155,7 +193,8 @@ export function t(key) {
 }
 
 export const SUPPORTED_LANGS = [
-  { code: 'en', label: 'English', flag: '🇬🇧' },
-  { code: 'hi', label: 'हिंदी',   flag: '🇮🇳' },
-  { code: 'gu', label: 'ગુજરાતી', flag: '🇮🇳' },
+  { code: 'en', label: 'English',    flag: '🇬🇧' },
+  { code: 'hi', label: 'हिंदी',      flag: '🇮🇳' },
+  { code: 'gu', label: 'ગુજરાતી',    flag: '🇮🇳' },
+  { code: 'mr', label: 'मराठी',      flag: '🇮🇳' },
 ]
