@@ -34,7 +34,7 @@ export function useFirestoreGallery(state, dispatch) {
       return
     }
 
-    const offline = isOffline || isDemoMode
+    const offline = isOffline || isDemoMode || db.isMock
     setIsOfflineMode(offline)
 
     if (offline) {

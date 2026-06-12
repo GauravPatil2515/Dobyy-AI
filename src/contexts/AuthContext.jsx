@@ -33,8 +33,8 @@ export function AuthProvider({ children }) {
   }, [])
 
   useEffect(() => {
-    // If offline, use demo mode immediately
-    if (isOffline) {
+    // If offline or firebase auth is mock, use demo mode immediately
+    if (isOffline || auth.isMock) {
       setUser(DEMO_USER)
       setLoading(false)
       setUseDemoMode(true)
@@ -65,8 +65,10 @@ export function AuthProvider({ children }) {
   }, [isOffline, useDemoMode])
 
   const signInWithGoogle = async () => {
-    if (isOffline) {
-      throw new Error('Cannot sign in while offline')
+    if (isOffline || auth.isMock) {
+      setUser(DEMO_USER)
+      setUseDemoMode(true)
+      return DEMO_USER
     }
     try {
       const result = await signInWithPopup(auth, googleProvider)
@@ -86,7 +88,7 @@ export function AuthProvider({ children }) {
   }
 
   const logout = async () => {
-    if (isOffline || useDemoMode) {
+    if (isOffline || useDemoMode || auth.isMock) {
       setUser(null)
       setUseDemoMode(false)
       return
