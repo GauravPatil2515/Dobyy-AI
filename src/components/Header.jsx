@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext.jsx'
 import { useSubscription } from '../contexts/SubscriptionContext.jsx'
 import { t, getLang, setLang, SUPPORTED_LANGS } from '../utils/i18n.js'
 
-export default function Header({ state, dispatch, undo, redo, canUndo, canRedo, onMenuToggle }) {
+export default function Header({ state, dispatch, undo, redo, canUndo, canRedo, onMenuToggle, onDesignDropOpen }) {
   const { user, logout } = useAuth()
   const { isPro } = useSubscription()
   const [showProfile, setShowProfile] = useState(false)
@@ -93,6 +93,11 @@ export default function Header({ state, dispatch, undo, redo, canUndo, canRedo, 
 
       <div className="header-right">
         <span className="badge">{total}T · {state.sett.length}c · {wl[state.weave]}</span>
+
+        <button className="btn-variations" onClick={onDesignDropOpen} title="Generate Variations (Design Drop)">
+          <span>✨</span>
+          <span className="btn-text">Variations</span>
+        </button>
 
         <button className="icon-btn" onClick={() => dispatch({type:'TOGGLE_THEME'})} title="Toggle theme">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15">

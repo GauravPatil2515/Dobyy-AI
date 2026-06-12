@@ -1708,3 +1708,32 @@ textarea:disabled { opacity: .6; cursor: not-allowed }
   background: var(--off);
 }
 @media (max-width: 1024px) { .menu-btn { display: flex } }
+
+/* ── VARIATIONS BUTTON ───────────────────────────────────────── */
+.btn-variations {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 var(--sp-3);
+  height: 32px;
+  background: var(--acl);
+  border: 1px solid var(--acl2) !important;
+  color: var(--ac) !important;
+  border-radius: var(--r-md);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--ease-ui);
+  box-shadow: 0 1px 2px oklch(from var(--ac) l c h / 0.05);
+}
+.btn-variations:hover {
+  background: var(--acl2);
+  transform: translateY(-1px);
+}
+.btn-variations:active {
+  transform: translateY(0);
+}
+@media (max-width: 640px) {
+  .btn-variations .btn-text { display: none }
+  .btn-variations { padding: 0 var(--sp-2) }
+}
