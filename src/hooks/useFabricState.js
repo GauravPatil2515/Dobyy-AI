@@ -4,8 +4,12 @@ import { askGroq } from '../utils/groqClient.js'
 
 const VALID_WEAVES = ['twill22','twill21','plain','satin5','twill31','basket2','hopsack']
 
+// Stable uid generator for stripe identity (dnd-kit keys)
+let _uidCounter = 0
+const uid = () => `s_${++_uidCounter}_${Math.random().toString(36).slice(2,7)}`
+
 const INITIAL = {
-  sett:         PRESETS[0].sett.map(s => ({...s})),
+  sett:         PRESETS[0].sett.map(s => ({...s, id: uid()})),
   weave:        'twill22',
   ts:           8,
   reps:         3,
@@ -20,13 +24,18 @@ function reducer(state, action) {
     case 'SET_TS':        return { ...state, ts: Math.max(4, Math.min(22, action.ts)) }
     case 'SET_REPS':      return { ...state, reps: Math.max(1, Math.min(12, action.reps)) }
     case 'SET_PANEL':     return { ...state, panel: action.panel }
-    case 'SET_PRESET':    return { ...state, sett: PRESETS[action.idx].sett.map(s=>({...s})), activePreset: action.idx }
+    // FIX #5: inject stable id into every preset stripe so dnd-kit keys never break
+    case 'SET_PRESET':    return { ...state, sett: PRESETS[action.idx].sett.map(s=>({...s, id: uid()})), activePreset: action.idx }
     case 'TOGGLE_THEME':  return { ...state, theme: state.theme === 'light' ? 'dark' : 'light' }
-    case 'ADD_STRIPE':    return { ...state, sett: [...state.sett, { c:'#888888', n:4 }] }
+    case 'ADD_STRIPE':    return { ...state, sett: [...state.sett, { c:'#888888', n:4, id: uid() }] }
     case 'UPDATE_STRIPE': return { ...state, sett: state.sett.map((s,i) => i===action.idx ? {...s,...action.patch} : s) }
     case 'REMOVE_STRIPE': return { ...state, sett: state.sett.length > 1 ? state.sett.filter((_,i) => i!==action.idx) : state.sett }
     case 'REORDER_SETT':  return { ...state, sett: action.newSett }
-    case 'APPLY':         return { ...action.newState }
+    // FIX #6: ensure every incoming sett stripe has a stable id (prevents dnd-kit crash after AI/DesignDrop APPLY)
+    case 'APPLY': {
+      const sett = (action.newState.sett || []).map(s => s.id ? s : {...s, id: uid()})
+      return { ...action.newState, sett }
+    }
     default: return state
   }
 }
@@ -44,7 +53,6 @@ export function useFabricState() {
   const histIdx   = useRef(0)
   const skipDepth = useRef(0)
 
-  // Keep a stable ref to latest dispatch so closures in useEffect never go stale
   const dispatchRef = useRef(null)
 
   const dispatchWithHistory = useCallback((action) => {
@@ -57,7 +65,6 @@ export function useFabricState() {
     dispatch(action)
   }, [])
 
-  // Always keep ref in sync — sync effect runs before paint
   dispatchRef.current = dispatchWithHistory
 
   const undo = useCallback(() => {
@@ -92,6 +99,7 @@ export function useFabricState() {
         newState.sett = result.sett.map(s => ({
           c: s.c || '#888888',
           n: Math.max(1, Math.min(32, s.n || 4))
+          // id injected by APPLY reducer case
         }))
         newState.activePreset = -1
       }

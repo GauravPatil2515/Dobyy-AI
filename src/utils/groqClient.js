@@ -43,7 +43,8 @@ User: "Analyze this fabric - extracted 4 colors: #cc2211, #111111, #003399, #fff
 Response: {"reply":"Beautiful red and navy tartan detected from your image!","action":"sett","sett":[{"c":"#cc2211","n":12},{"c":"#111111","n":2},{"c":"#003399","n":8},{"c":"#ffffff","n":2}],"weave":"twill22","ts":8,"reps":3,"intent":"image analysis: red, navy, white"}
 `
 
-export async function askGroq(messages, currentState) {
+// FIX #9: accept isPro flag so Pro users get correct rate limit tier on server
+export async function askGroq(messages, currentState, isPro = false) {
   const settSummary = currentState.sett
     .map(s => `${s.c}\u00d7${s.n}t`)
     .join(', ')
@@ -53,57 +54,49 @@ export async function askGroq(messages, currentState) {
 - Sett (${currentState.sett.length} stripes, ${totalThreads} threads total): [${settSummary}]
 - Weave: ${currentState.weave}
 - Thread size: ${currentState.ts}px
-- Repeats: ${currentState.reps}
-Modify from this state unless user requests a completely new design.`
+- Repeats: ${currentState.reps}x`
 
-  const apiMessages = [
+  const fullMessages = [
     { role: 'system', content: SYSTEM_PROMPT },
-    { role: 'system', content: stateContext },
+    { role: 'user', content: stateContext },
     ...messages
   ]
 
-  // BUG FIX: send Firebase auth headers so /api/chat rate-limits per real user
-  // instead of bucketing everyone under 'anonymous' and sharing quotas.
-  const user = auth.currentUser
-  const uid = user?.uid || 'anonymous'
-  // tier header — extend this when Stripe pro plan is wired
-  const tier = 'free'
+  let token = null
+  try {
+    token = await auth.currentUser?.getIdToken()
+  } catch (_) {}
 
-  const res = await fetch('/api/chat', {
+  const headers = {
+    'Content-Type': 'application/json',
+    // FIX #9: pass tier so server-side rate limiter applies correct quota
+    'X-User-Tier': isPro ? 'pro' : 'free',
+  }
+  if (token) headers['Authorization'] = `Bearer ${token}`
+
+  const response = await fetch('/api/chat', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-User-Id': uid,
-      'X-User-Tier': tier,
-    },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      messages: apiMessages,
-      temperature: 0.7,
-      max_tokens: 512,
-    })
+    headers,
+    body: JSON.stringify({ messages: fullMessages })
   })
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err?.error?.message || `HTTP ${res.status}`)
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}))
+    throw new Error(err.error || `HTTP ${response.status}`)
   }
 
-  const data = await res.json()
-  const raw  = data.choices[0].message.content.trim()
-  const cleaned = raw.replace(/^```json\s*/i,'').replace(/```$/,'').trim()
+  const data = await response.json()
+  const raw = data.content || data.message || ''
+
+  // Strip markdown code fences if present
+  const clean = raw.replace(/^```json\n?|^```\n?|\n?```$/g, '').trim()
 
   try {
-    return JSON.parse(cleaned)
-  } catch (parseErr) {
-    console.error('[groqClient] JSON parse error:', parseErr, 'Raw:', cleaned)
-    return {
-      reply: "I had trouble with that. Try: 'red and navy tartan' or 'Black Watch'.",
-      action: 'none', sett: null,
-      weave: currentState.weave,
-      ts: currentState.ts,
-      reps: currentState.reps,
-      intent: 'parse error'
-    }
+    return JSON.parse(clean)
+  } catch {
+    // Attempt to extract JSON object from text
+    const match = clean.match(/\{[\s\S]*\}/)
+    if (match) return JSON.parse(match[0])
+    throw new Error('Invalid JSON response from AI')
   }
 }

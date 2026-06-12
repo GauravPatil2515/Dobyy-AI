@@ -3,6 +3,8 @@ import { useAuth } from '../contexts/AuthContext.jsx'
 import { useSubscription } from '../contexts/SubscriptionContext.jsx'
 import { fileToBase64, analyzeImageWithGroq, buildAnalysisMessage } from '../utils/imageAnalyzer'
 import { t, getLang } from '../utils/i18n.js'
+// FIX #3: import VoiceControl and wire it next to the attach button
+import VoiceControl from './VoiceControl.jsx'
 
 const WEAVE_LABELS = {
   twill22:'2/2 Twill', twill21:'2/1 Twill',
@@ -39,7 +41,6 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
   const msgsRef    = useRef(null)
   const fileInputRef = useRef(null)
 
-  // Re-render on language change so placeholder text updates live
   useEffect(() => {
     const onLangChange = (e) => setLangState(e.detail)
     window.addEventListener('dobby-lang-change', onLangChange)
@@ -78,6 +79,11 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
     })
   }
 
+  // FIX #3: handler called by VoiceControl when speech is transcribed
+  const handleVoiceTranscript = (transcript) => {
+    setInput(transcript)
+  }
+
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0]
     if (!file || loading) return
@@ -93,6 +99,7 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
         const result = await analyzeImageWithGroq(base64)
 
         if (result.sett?.length > 0) {
+          // FIX #10: dispatch is now properly received as a prop from App.jsx
           dispatch({
             type: 'APPLY',
             newState: {
@@ -235,6 +242,8 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
               <line x1="12" y1="3" x2="12" y2="15"/>
             </svg>
           </button>
+          {/* FIX #3: VoiceControl wired next to attach button — sets input on transcript */}
+          <VoiceControl onTranscript={handleVoiceTranscript} disabled={loading} />
           <button className="btn-send" disabled={loading} onClick={() => send(input)}>
             {loading ? (
               <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2">

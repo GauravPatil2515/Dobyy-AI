@@ -11,11 +11,15 @@ import ChatPanel    from './components/ChatPanel.jsx'
 import LandingPage  from './components/LandingPage.jsx'
 import LoginPage    from './components/LoginPage.jsx'
 import UpgradeModal from './components/UpgradeModal.jsx'
+// FIX #2: Import DesignDrop and wire showDesignDrop state
+import DesignDrop   from './components/DesignDrop.jsx'
 
 export default function App() {
   const { isAuthenticated, loading: authLoading } = useAuth()
   const { canMakeApiCall, getRemainingCalls, isPro, subscription } = useSubscription()
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  // FIX #2: state to show/hide DesignDrop modal
+  const [showDesignDrop, setShowDesignDrop] = useState(false)
   const [showLanding, setShowLanding] = useState(
     () => !sessionStorage.getItem('dobby-entered')
   )
@@ -104,8 +108,6 @@ export default function App() {
     setShowLanding(false)
   }
 
-  // BUG FIX: replaced inline loading div + <style> tag with CSS classes from main.css
-  // The old inline @keyframes spin fought with the global CSS spin keyframe we added.
   if (authLoading) {
     return (
       <div className="app-loading">
@@ -130,7 +132,9 @@ export default function App() {
           state={state} dispatch={dispatch}
           undo={undo} redo={redo}
           canUndo={canUndo} canRedo={canRedo}
-          onMenuToggle={() => setSidebarOpen(o => !o)}/>
+          onMenuToggle={() => setSidebarOpen(o => !o)}
+          // FIX #2: wire DesignDrop open handler to Header
+          onDesignDropOpen={() => setShowDesignDrop(true)}/>
 
         <div
           className={`sidebar-backdrop${sidebarOpen ? ' visible' : ''}`}
@@ -172,8 +176,10 @@ export default function App() {
                 document.body.style.userSelect = 'none'
               }}
             />
+            {/* FIX #10: pass dispatch so image upload APPLY action works */}
             <ChatPanel
               state={state}
+              dispatch={dispatch}
               onPrompt={processPrompt}
               loading={loading}
               onLimitExceeded={() => setShowUpgradeModal(true)}
@@ -183,11 +189,18 @@ export default function App() {
         </div>
       </div>
 
+      {/* FIX #2: render DesignDrop modal */}
+      {showDesignDrop && (
+        <DesignDrop
+          state={state}
+          dispatch={dispatch}
+          onClose={() => setShowDesignDrop(false)}/>
+      )}
+
       {showUpgradeModal && (
         <UpgradeModal
           onClose={() => setShowUpgradeModal(false)}
           onUpgrade={() => {
-            // Show contact link until Stripe is wired
             window.open('mailto:gaurav@dobby.studio?subject=Dobby Studio Pro Upgrade', '_blank')
           }}
         />
