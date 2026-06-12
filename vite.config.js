@@ -4,8 +4,8 @@ import { loadEnv } from 'vite'
 
 export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const groqKey = env.VITE_GROQ_API_KEY || ''
-  const orKey = env.VITE_OPENROUTER_API_KEY || '***REMOVED***'
+  const groqKey = env.VITE_GROQ_API_KEY || env.GROQ_API_KEY || ''
+  const orKey = env.VITE_OPENROUTER_API_KEY || env.OPENROUTER_API_KEY || '***REMOVED***'
 
   return {
     plugins: [react()],

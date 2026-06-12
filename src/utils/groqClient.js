@@ -77,7 +77,12 @@ export async function askGroq(messages, currentState, isPro = false) {
   const response = await fetch('/api/chat', {
     method: 'POST',
     headers,
-    body: JSON.stringify({ messages: fullMessages })
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      messages: fullMessages,
+      temperature: 0.7,
+      max_tokens: 512
+    })
   })
 
   if (!response.ok) {
@@ -86,7 +91,7 @@ export async function askGroq(messages, currentState, isPro = false) {
   }
 
   const data = await response.json()
-  const raw = data.content || data.message || ''
+  const raw = data.choices?.[0]?.message?.content || data.content || data.message || ''
 
   // Strip markdown code fences if present
   const clean = raw.replace(/^```json\n?|^```\n?|\n?```$/g, '').trim()
