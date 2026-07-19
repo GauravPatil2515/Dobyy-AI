@@ -85,6 +85,13 @@ export async function askGroq(messages, currentState, isPro = false) {
   }
 
   const data = await response.json()
+  // Surface server-side quota so the client stops double-counting locally.
+  const remainingHeader = response.headers.get('X-RateLimit-Remaining')
+  const limitHeader = response.headers.get('X-RateLimit-Limit')
+  const serverQuota = {
+    remaining: remainingHeader != null ? Number(remainingHeader) : null,
+    limit: limitHeader != null ? Number(limitHeader) : null,
+  }
   // Groq/OpenAI shape: data.choices[0].message.content (server proxy returns full payload)
   const raw = data.choices?.[0]?.message?.content || data.content || data.message || ''
 
@@ -92,11 +99,11 @@ export async function askGroq(messages, currentState, isPro = false) {
   const clean = raw.replace(/^```json\n?|^```\n?|\n?```$/g, '').trim()
 
   try {
-    return JSON.parse(clean)
+    return { ...JSON.parse(clean), _quota: serverQuota }
   } catch {
     // Attempt to extract JSON object from text
     const match = clean.match(/\{[\s\S]*\}/)
-    if (match) return JSON.parse(match[0])
+    if (match) return { ...JSON.parse(match[0]), _quota: serverQuota }
     throw new Error('Invalid JSON response from AI')
   }
 }

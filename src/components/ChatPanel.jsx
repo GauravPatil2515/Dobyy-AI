@@ -32,6 +32,10 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
     text: 'Hello! I\'m Dobby, your AI fabric designer.\n\nDescribe any tartan or fabric — I\'ll design it live. Try "autumn forest tartan" or "ocean blues and white" ❖'
   }])
   const [intent, setIntent] = useState('')
+  // Server-authoritative quota (from X-RateLimit-* headers). Overrides the
+  // client's local counter so the pill never desyncs from the real server limit.
+  const [serverRemaining, setServerRemaining] = useState(null)
+  const [serverLimit, setServerLimit] = useState(null)
   const msgsRef    = useRef(null)
   const fileInputRef = useRef(null)
 
@@ -49,10 +53,12 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
   const send = async (text) => {
     if (!text.trim() || loading) return
 
-    if (!canMakeApiCall()) {
+    // Prefer the server's authoritative remaining count; fall back to the
+    // client's local counter only before the first server response arrives.
+    if (serverRemaining != null ? serverRemaining <= 0 : !canMakeApiCall()) {
       setMsgs(m => [...m, { role:'user', text }, {
         role:'ai',
-        text: t('chat.limitReached', { n: dailyLimit || 5 })
+        text: t('chat.limitReached', { n: serverLimit || dailyLimit || 5 })
       }])
       setInput('')
       onLimitExceeded?.()
@@ -64,7 +70,11 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
     setMsgs(m => [...m, { role:'ai', text:'...', isTyping: true }])
     await incrementApiCall()
 
-    await onPrompt(text, ({ reply, intent }) => {
+    await onPrompt(text, ({ reply, intent, quota }) => {
+      if (quota) {
+        if (quota.remaining != null) setServerRemaining(quota.remaining)
+        if (quota.limit != null) setServerLimit(quota.limit)
+      }
       setMsgs(m => {
         const filtered = m.filter(msg => !msg.isTyping)
         return [...filtered, { role:'ai', text: reply }]
@@ -129,6 +139,9 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
   const tsPercent  = ((state.ts - 4) / 18 * 100).toFixed(0)
   const repPercent = ((state.reps - 1) / 11 * 100).toFixed(0)
   const chips      = getContextChips(state)
+  // Show server-authoritative remaining once we have it; otherwise the
+  // client's locally-tracked count (used before the first API response).
+  const displayRemaining = serverRemaining != null ? serverRemaining : remainingCalls
 
   return (
     <div className="chat-panel">
@@ -141,11 +154,11 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
               {!isPro && (
                 <span style={{
                   marginLeft:8, padding:'2px 8px',
-                  background: remainingCalls <= 1 ? '#fee2e2' : '#fef3c7',
-                  color: remainingCalls <= 1 ? '#dc2626' : '#92400e',
+                  background: displayRemaining <= 1 ? '#fee2e2' : '#fef3c7',
+                  color: displayRemaining <= 1 ? '#dc2626' : '#92400e',
                   borderRadius:4, fontSize:'0.75rem', fontWeight:500
                 }}>
-                  {remainingCalls} {t('chat.remaining')}
+                  {displayRemaining} {t('chat.remaining')}
                 </span>
               )}
               {isPro && (

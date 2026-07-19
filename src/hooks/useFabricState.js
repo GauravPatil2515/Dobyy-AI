@@ -138,7 +138,11 @@ export function useFabricState() {
       const assistantMsg = { role: 'assistant', content: result.reply || 'Design updated!' }
       setChatHistory([...updatedHistory, assistantMsg].slice(-10))
 
-      if (onReply) onReply({ reply: result.reply || 'Design updated!', intent: result.intent || 'llm' })
+      if (onReply) onReply({
+        reply: result.reply || 'Design updated!',
+        intent: result.intent || 'llm',
+        quota: result._quota || null
+      })
     } catch(err) {
       console.error('Groq error:', err)
       setChatHistory(updatedHistory)
