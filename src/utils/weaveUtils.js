@@ -10,10 +10,10 @@ export function weaveMatrix(type, size) {
       if(type==='twill22') return (i+j)%4<2 ? 1 : 0
       if(type==='twill21') return (i+j)%3<2 ? 1 : 0
       if(type==='plain')   return (i+j)%2
-      if(type==='satin5')  return (i+j)%5===0 ? 1 : 0
+      if(type==='satin5')  return (i+2*j)%5===0 ? 1 : 0
       if(type==='twill31') return (i+j)%4<3 ? 1 : 0
       if(type==='basket2') return (Math.floor(i/2)+Math.floor(j/2))%2 ? 1 : 0
-      if(type==='hopsack') return (Math.floor(i/2)+j)%2 ? 1 : 0
+      if(type==='hopsack') return (Math.floor(i/2)+Math.floor(j/2)+1)%2 ? 1 : 0
       return (i+j)%4<2 ? 1 : 0
     })
   )
