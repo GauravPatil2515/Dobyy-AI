@@ -377,7 +377,7 @@ a, button, [role=button] {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg);
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
   padding: var(--sp-6);
 }
 .login-card {
@@ -1736,4 +1736,221 @@ textarea:disabled { opacity: .6; cursor: not-allowed }
 @media (max-width: 640px) {
   .btn-variations .btn-text { display: none }
   .btn-variations { padding: 0 var(--sp-2) }
+}
+
+/* ── LOGIN PAGE EXTRAS ──────────────────────────────────────── */
+.login-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto var(--sp-8);
+  background: rgba(255,255,255,0.1);
+  border-radius: var(--r-xl);
+  backdrop-filter: blur(10px);
+}
+
+.login-features {
+  background: rgba(255,255,255,0.05);
+  border-radius: 16px;
+  padding: var(--sp-6);
+  margin-bottom: var(--sp-8);
+  backdrop-filter: blur(10px);
+}
+
+.login-features h3 {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.6;
+  margin-bottom: var(--sp-4);
+  color: rgba(255,255,255,0.8);
+}
+
+.login-features ul {
+  list-style: none;
+  padding: 0;
+  text-align: left;
+  font-size: 0.95rem;
+  line-height: 2;
+}
+
+.login-features li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.login-feature-disabled {
+  opacity: 0.5;
+}
+
+.login-btn-google {
+  width: 100%;
+  padding: 16px 24px;
+  font-size: 1rem;
+  font-weight: 500;
+  background: white;
+  color: #1a1a2e;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.login-btn-google:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+}
+
+.login-btn-google:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.login-btn-demo {
+  width: 100%;
+  padding: 16px 24px;
+  font-size: 1rem;
+  font-weight: 500;
+  background: transparent;
+  color: white;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 12px;
+  cursor: pointer;
+  margin-top: 12px;
+  transition: all 0.2s;
+}
+
+.login-btn-demo:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.5);
+}
+
+.login-footer {
+  margin-top: var(--sp-6);
+  text-align: center;
+  font-size: 0.8rem;
+  opacity: 0.5;
+  color: rgba(255,255,255,0.8);
+}
+
+/* ── UPGRADE MODAL ──────────────────────────────────────────── */
+.upgrade-modal-header {
+  text-align: center;
+  margin-bottom: var(--sp-6);
+}
+
+.upgrade-icon {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--sp-4);
+}
+
+.upgrade-progress {
+  background: var(--off);
+  border-radius: 12px;
+  padding: var(--sp-4);
+  margin-bottom: var(--sp-6);
+}
+
+.upgrade-progress-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+  color: var(--mt);
+}
+
+.upgrade-progress-count {
+  font-weight: 500;
+}
+
+.upgrade-progress-bar {
+  height: 6px;
+  background: var(--bdr2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.upgrade-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.upgrade-progress-note {
+  font-size: 0.8rem;
+  color: var(--ft);
+  margin-top: 8px;
+}
+
+.upgrade-pro-card {
+  border: 2px solid var(--bdr2);
+  border-radius: 16px;
+  padding: var(--sp-5);
+  margin-bottom: var(--sp-6);
+}
+
+.upgrade-pro-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sp-2);
+}
+
+.upgrade-pro-sub {
+  font-size: 0.9rem;
+  color: var(--mt);
+  margin-bottom: var(--sp-4);
+}
+
+.upgrade-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 2;
+}
+
+.upgrade-features li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.upgrade-pricing {
+  margin-top: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--off);
+  border-radius: 8px;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.upgrade-price {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.upgrade-price-period {
+  color: var(--mt);
+}
+
+.upgrade-actions {
+  display: flex;
+  gap: 12px;
 }

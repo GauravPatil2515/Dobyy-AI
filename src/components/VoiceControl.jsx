@@ -29,7 +29,7 @@ export default function VoiceControl({ onTranscript, disabled }) {
 
       recognitionRef.current = rec
     }
-  }, [])
+  }, [onTranscript])
 
   if (!supported) return null
 
