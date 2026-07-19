@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { useFabricState } from './hooks/useFabricState.js'
 import { useFirestoreGallery } from './hooks/useFirestoreGallery.js'
 import { useAuth } from './contexts/AuthContext.jsx'
@@ -11,8 +11,8 @@ import ChatPanel    from './components/ChatPanel.jsx'
 import LandingPage  from './components/LandingPage.jsx'
 import LoginPage    from './components/LoginPage.jsx'
 import UpgradeModal from './components/UpgradeModal.jsx'
-// FIX #2: Import DesignDrop and wire showDesignDrop state
-import DesignDrop   from './components/DesignDrop.jsx'
+
+const DesignDrop = lazy(() => import('./components/DesignDrop.jsx'))
 
 export default function App() {
   const { isAuthenticated, loading: authLoading } = useAuth()
@@ -191,10 +191,12 @@ export default function App() {
 
       {/* FIX #2: render DesignDrop modal */}
       {showDesignDrop && (
-        <DesignDrop
-          state={state}
-          dispatch={dispatch}
-          onClose={() => setShowDesignDrop(false)}/>
+        <Suspense fallback={null}>
+          <DesignDrop
+            state={state}
+            dispatch={dispatch}
+            onClose={() => setShowDesignDrop(false)}/>
+        </Suspense>
       )}
 
       {showUpgradeModal && (
