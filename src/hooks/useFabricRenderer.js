@@ -110,3 +110,7 @@ export function useFabricRenderer(canvasRef, state) {
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
   }, [threads, matrix, state.ts, state.reps])
 }
+
+// Re-exported for cheap static thumbnails (e.g. gallery grid) that don't need
+// the rAF-batched hook.
+export { renderFabric }

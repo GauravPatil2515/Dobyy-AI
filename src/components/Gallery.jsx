@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useSubscription } from '../contexts/SubscriptionContext.jsx'
+import FabricThumb from './FabricThumb.jsx'
 
 export default function Gallery({ 
   gallery, 
@@ -84,11 +85,9 @@ export default function Gallery({
             key={entry.id}
             className={`gallery-item${activeId===entry.id?' active':''}`}>
 
-            {/* Sett mini preview */}
+            {/* Fabric mini preview */}
             <div className="gallery-thumb" onClick={() => onLoad(entry)}>
-              {entry.sett.slice(0,8).map((s,i) => (
-                <div key={i} style={{flex:s.n, background:s.c, minWidth:2}}/>
-              ))}
+              <FabricThumb sett={entry.sett} weave={entry.weave} size={48} />
             </div>
 
             {/* Name — click to rename */}

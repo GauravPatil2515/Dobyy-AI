@@ -1489,13 +1489,14 @@ textarea:disabled { opacity: .6; cursor: not-allowed }
 
 .gallery-thumb {
   width: 48px;
-  height: 24px;
+  height: 48px;
   border-radius: var(--r-xs);
   border: 1px solid var(--bdr);
   display: flex;
   overflow: hidden;
   flex-shrink: 0;
   box-shadow: var(--shadow-sm);
+  background: var(--off);
 }
 .gallery-info { flex: 1; min-width: 0 }
 .gallery-name {
@@ -1953,4 +1954,34 @@ textarea:disabled { opacity: .6; cursor: not-allowed }
 .upgrade-actions {
   display: flex;
   gap: 12px;
+}
+
+/* A-B compare view */
+.compare-wrap {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 8px;
+}
+.compare-half {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+.compare-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--fg2);
+  letter-spacing: 0.02em;
+}
+.compare-canvas {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--r-md);
+  border: 1px solid var(--bdr);
+  box-shadow: var(--shadow-md);
+  background: var(--off);
 }
