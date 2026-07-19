@@ -28,9 +28,19 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Designs sub-collection
-    match /users/{userId}/designs/{designId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // Designs collection (top-level, owned by userId)
+    match /designs/{designId} {
+      allow read: if request.auth != null
+        && request.auth.uid == resource.data.userId;
+
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.userId;
+
+      allow update: if request.auth != null
+        && request.auth.uid == resource.data.userId;
+
+      allow delete: if request.auth != null
+        && request.auth.uid == resource.data.userId;
     }
 
     // Deny everything else
