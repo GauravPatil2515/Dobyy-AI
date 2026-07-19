@@ -37,7 +37,7 @@ export function SubscriptionProvider({ children }) {
     }
 
     // Offline mode - use local storage for usage tracking
-    if (isOffline || isDemoMode || !navigator.onLine || db.isMock) {
+    if (isOffline || isDemoMode || !navigator.onLine) {
       const savedUsage = localStorage.getItem(`dobby-usage-${user.uid}`)
       if (savedUsage) {
         const parsed = JSON.parse(savedUsage)
@@ -104,13 +104,13 @@ export function SubscriptionProvider({ children }) {
     }
 
     fetchSubscription()
-  // FIX: subscription.maxSavedDesigns removed — was causing infinite loop
+    // FIX: subscription.maxSavedDesigns removed — was causing infinite loop
   }, [user, isAuthenticated, isOffline, isDemoMode])
 
   const incrementApiCall = useCallback(async () => {
     if (!isAuthenticated || !user) return false
 
-    if (isOffline || isDemoMode || !navigator.onLine || db.isMock) {
+    if (isOffline || isDemoMode || !navigator.onLine) {
       const currentCalls = usage.dailyCalls
       if (currentCalls >= FREE_TIER.dailyApiCalls) return false
       const newCount = currentCalls + 1
