@@ -117,21 +117,23 @@ export function localKMeansExtract(imageData) {
 // ════════════════════════════════════════════════════════════
 export async function analyzeImageWithGroq(base64Data, onProgress) {
   try {
-    // Check for API key
-    const OR_KEY = document.querySelector('meta[name="openrouter-key"]')?.content?.trim()
-                || window.__OPENROUTER_KEY?.trim()
-                || process.env.VITE_OPENROUTER_API_KEY
-                || '***REMOVED***';
+    // Get a fresh Firebase ID token so the server can authorize + rate-limit.
+    // The proxy no longer accepts anonymous requests (paid OpenRouter key).
+    let token = null;
+    try {
+      const { auth } = await import('../firebase.js');
+      token = await auth.currentUser?.getIdToken();
+    } catch (_) { /* anonymous / offline → fall back below */ }
 
-    if (!OR_KEY || OR_KEY === 'YOUR_OPENROUTER_API_KEY_HERE') {
-      onProgress({ error: 'no-key', message: '⚠️ No OpenRouter API key found. Using local color extraction.' });
+    if (!token) {
+      onProgress({ error: 'no-auth', message: '⚠️ Sign in to use AI image analysis. Using local color extraction.' });
       const fallback = await localKMeansExtract(base64Data);
       return {
         sett: fallback,
         weave: 'twill22',
         confidence: 60,
-        description: 'Local K-means color extraction (no API key)',
-        source: 'fallback-nokey'
+        description: 'Local K-means color extraction (not signed in)',
+        source: 'fallback-noauth'
       };
     }
 
@@ -140,7 +142,7 @@ export async function analyzeImageWithGroq(base64Data, onProgress) {
     // Use OpenRouter proxy endpoint for vision analysis
     const res = await fetch('/api/openrouter', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({
         endpoint: 'chat/completions',
         payload: {
@@ -196,9 +198,9 @@ Example valid response:
       
       let errorMsg = `API error ${res.status}`;
       if (res.status === 401) {
-        errorMsg = '❌ Invalid OpenRouter API key';
+        errorMsg = '❌ Sign in required for AI image analysis';
       } else if (res.status === 429) {
-        errorMsg = '⏳ Rate limit hit - wait 10 seconds';
+        errorMsg = '⏳ Daily limit reached — upgrade to Pro';
       } else if (res.status === 413) {
         errorMsg = '📦 Image too large';
       }
