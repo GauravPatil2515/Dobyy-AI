@@ -4,3 +4,6 @@ dist/
 .env.local
 secrets.txt
 bfg.jar
+
+# Obsidian — machine-specific editor window state (keep the rest of the vault)
+docs/Dobby/.obsidian/workspace.json
