@@ -184,7 +184,8 @@ export default function App() {
               loading={loading}
               onLimitExceeded={() => setShowUpgradeModal(true)}
               remainingCalls={getRemainingCalls()}
-              isPro={isPro}/>
+              isPro={isPro}
+              dailyLimit={subscription.dailyApiCalls}/>
           </div>
         </div>
       </div>

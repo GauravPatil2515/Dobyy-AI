@@ -22,7 +22,7 @@ function getContextChips(state) {
   return [...settChips.slice(0,2), ...weaveChips.slice(0,1), ...base.slice(0,2), ...presets.slice(0,3)].slice(0, 9)
 }
 
-export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitExceeded, remainingCalls, isPro }) {
+export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitExceeded, remainingCalls, isPro, dailyLimit }) {
   const { isAuthenticated } = useAuth()
   const { canMakeApiCall, incrementApiCall } = useSubscription()
   const [input,  setInput]  = useState('')
@@ -52,7 +52,7 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
     if (!canMakeApiCall()) {
       setMsgs(m => [...m, { role:'user', text }, {
         role:'ai',
-        text: "You've reached your daily limit of 5 free designs. Upgrade to Pro for unlimited designs! ✨"
+        text: t('chat.limitReached', { n: dailyLimit || 5 })
       }])
       setInput('')
       onLimitExceeded?.()
@@ -118,7 +118,7 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
         console.error('[ChatPanel] Image upload error:', err)
         setMsgs(m => {
           const filtered = m.filter(msg => !msg.isTyping)
-          return [...filtered, { role:'ai', text: '❌ Image analysis failed. Try a clearer photo of the fabric.' }]
+          return [...filtered, { role:'ai', text: t('chat.imageError') }]
         })
       }
     }
@@ -137,7 +137,7 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
         <div className="chat-sub">
           {loading ? '⟳ Generating design…' : (
             <>
-              Powered by Groq · llama3-70b
+              Powered by {t('chat.model')}
               {!isPro && (
                 <span style={{
                   marginLeft:8, padding:'2px 8px',

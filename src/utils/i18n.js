@@ -34,6 +34,9 @@ const STRINGS = {
     'chat.placeholder': 'Describe your fabric…',
     'chat.send':        'Send',
     'chat.remaining':   'calls remaining today',
+    'chat.limitReached': 'You\'ve reached your daily limit of {n} free designs. Upgrade to Pro for more calls! ✨',
+    'chat.imageError':  '❌ Image analysis failed. Try a clearer photo of the fabric.',
+    'chat.model':       'Groq · llama-3.3-70b',
     // Status
     'status.ready':     'Ready',
     'status.threads':   'threads',
@@ -80,6 +83,9 @@ const STRINGS = {
     'chat.placeholder': 'अपने कपड़े का वर्णन करें…',
     'chat.send':        'भेजें',
     'chat.remaining':   'कॉल आज बाकी',
+    'chat.limitReached': 'आप {n} मुफ़्त डिज़ाइन की दैनिक सीमा तक पहुँच गए हैं। और कॉल के लिए प्रो में अपग्रेड करें! ✨',
+    'chat.imageError':  '❌ छवि विश्लेषण असफल। कपड़े की स्पष्ट फ़ोटो आज़माएँ।',
+    'chat.model':       'Groq · llama-3.3-70b',
     'status.ready':     'तैयार',
     'status.threads':   'धागे',
     'status.shaft':     '-शाफ्ट',
@@ -122,6 +128,9 @@ const STRINGS = {
     'chat.placeholder': 'તમારા કાપડનું વર્ણન કરો…',
     'chat.send':        'મોકલો',
     'chat.remaining':   'કૉલ આજે બાકી',
+    'chat.limitReached': 'તમે {n} મફત ડિઝાઇનની રોજની મર્યાદાએ પહોંચી ગયા છો. વધુ કૉલ માટે પ્રોમાં અપગ્રેડ કરો! ✨',
+    'chat.imageError':  '❌ છબી વિશ્લેષણ નિષ્ફળ. કપડાનો સ્પષ્ટ ફોટો અજમાવો.',
+    'chat.model':       'Groq · llama-3.3-70b',
     'status.ready':     'તૈયાર',
     'status.threads':   'દોરા',
     'status.shaft':     '-શાફ્ટ',
@@ -150,8 +159,10 @@ export function setLang(lang) {
   window.dispatchEvent(new CustomEvent('dobby-lang-change', { detail: lang }))
 }
 
-export function t(key) {
-  return STRINGS[currentLang]?.[key] || STRINGS.en[key] || key
+export function t(key, vars) {
+  let str = STRINGS[currentLang]?.[key] || STRINGS.en[key] || key
+  if (vars) for (const [k, v] of Object.entries(vars)) str = str.replace(`{${k}}`, v)
+  return str
 }
 
 export const SUPPORTED_LANGS = [
