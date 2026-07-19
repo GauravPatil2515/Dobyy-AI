@@ -43,7 +43,8 @@ User: "Analyze this fabric - extracted 4 colors: #cc2211, #111111, #003399, #fff
 Response: {"reply":"Beautiful red and navy tartan detected from your image!","action":"sett","sett":[{"c":"#cc2211","n":12},{"c":"#111111","n":2},{"c":"#003399","n":8},{"c":"#ffffff","n":2}],"weave":"twill22","ts":8,"reps":3,"intent":"image analysis: red, navy, white"}
 `
 
-// FIX #9: accept isPro flag so Pro users get correct rate limit tier on server
+// Tier is derived server-side from the verified Firebase token's custom claim.
+// The isPro arg is kept for API compatibility but is no longer trusted/sent.
 export async function askGroq(messages, currentState, isPro = false) {
   const settSummary = currentState.sett
     .map(s => `${s.c}\u00d7${s.n}t`)
@@ -69,8 +70,6 @@ export async function askGroq(messages, currentState, isPro = false) {
 
   const headers = {
     'Content-Type': 'application/json',
-    // FIX #9: pass tier so server-side rate limiter applies correct quota
-    'X-User-Tier': isPro ? 'pro' : 'free',
   }
   if (token) headers['Authorization'] = `Bearer ${token}`
 

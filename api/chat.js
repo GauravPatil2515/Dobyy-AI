@@ -1,6 +1,8 @@
 // Groq Chat Proxy API
-// Env vars required: GROQ_API_KEY, ALLOWED_ORIGIN
+// Env vars required: GROQ_API_KEY, ALLOWED_ORIGIN, FIREBASE_PROJECT_ID
 // Rate limiting is enforced server-side here — do NOT rely on client-side quota tracking.
+
+import crypto from 'node:crypto';
 
 // In-memory rate limit store (resets on cold start; upgrade to Redis/KV for persistence)
 const rateLimitStore = new Map();
@@ -28,40 +30,89 @@ function checkRateLimit(uid, isPro) {
   return { allowed: true, count: count + 1, limit };
 }
 
+// --- Firebase ID token verification (real RS256 signature check, no Admin SDK) ---
+// Google's public x509 certs for Firebase ID tokens, cached in-memory until expiry.
+const GOOGLE_CERTS_URL =
+  'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com';
+let _certCache = { certs: null, expiresAt: 0 };
+
+async function getGoogleCerts() {
+  const now = Date.now();
+  if (_certCache.certs && now < _certCache.expiresAt) return _certCache.certs;
+  const resp = await fetch(GOOGLE_CERTS_URL);
+  if (!resp.ok) throw new Error(`Failed to fetch Google certs: ${resp.status}`);
+  const certs = await resp.json();
+  // Respect Cache-Control max-age so we refresh when Google rotates keys.
+  const cc = resp.headers.get('cache-control') || '';
+  const maxAge = Number((cc.match(/max-age=(\d+)/) || [])[1]) || 3600;
+  _certCache = { certs, expiresAt: now + maxAge * 1000 };
+  return certs;
+}
+
+function b64urlToJson(b64url) {
+  return JSON.parse(Buffer.from(b64url, 'base64url').toString('utf8'));
+}
+
 /**
- * Verify Firebase ID token from Authorization header.
- * Returns the decoded token (containing uid) on success, null on failure.
- * Uses Google's public keys — no Firebase Admin SDK dependency needed.
+ * Verify a Firebase ID token: RS256 signature against Google's public certs,
+ * plus issuer / audience / expiry / issued-at / subject validation.
+ * Returns the decoded payload on success, null on any failure.
  */
 async function verifyFirebaseToken(authHeader) {
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
   const token = authHeader.slice(7);
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  if (!projectId) {
+    console.error('[Chat Proxy] FIREBASE_PROJECT_ID not set — cannot verify tokens');
+    return null;
+  }
+
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  const [headerB64, payloadB64, signatureB64] = parts;
+
+  let header, payload;
   try {
-    // Split the JWT to get the header
-    const [headerB64, payloadB64, signatureB64] = token.split('.');
-    if (!headerB64 || !payloadB64 || !signatureB64) return null;
-
-    // Decode the payload
-    const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
-
-    // Basic validation: check expiration
-    if (payload.exp && payload.exp * 1000 < Date.now()) return null;
-
-    // Check audience matches our project (prevents token from other apps)
-    const projectId = process.env.FIREBASE_PROJECT_ID;
-    if (projectId && payload.aud !== projectId) return null;
-
-    // For production, use Firebase Admin SDK's verifyIdToken for full verification.
-    // This lightweight check provides uid extraction + expiry validation.
-    // The signature check is handled by Google's public keys cached by the runtime.
-    // For full security, install firebase-admin and use:
-    //   const admin = require('firebase-admin');
-    //   return await admin.auth().verifyIdToken(token);
-
-    return payload;
+    header = b64urlToJson(headerB64);
+    payload = b64urlToJson(payloadB64);
   } catch {
     return null;
   }
+
+  // Header must declare RS256 and reference a key id.
+  if (header.alg !== 'RS256' || !header.kid) return null;
+
+  // Claim validation (Firebase spec).
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (!payload.exp || payload.exp <= nowSec) return null;
+  if (!payload.iat || payload.iat > nowSec + 300) return null; // small clock-skew tolerance
+  if (payload.aud !== projectId) return null;
+  if (payload.iss !== `https://securetoken.google.com/${projectId}`) return null;
+  if (!payload.sub || typeof payload.sub !== 'string') return null;
+
+  // Signature verification against the matching Google public cert.
+  let certs;
+  try {
+    certs = await getGoogleCerts();
+  } catch (e) {
+    console.error('[Chat Proxy] Cert fetch failed:', e.message);
+    return null;
+  }
+  const cert = certs[header.kid];
+  if (!cert) return null; // unknown key id → reject
+
+  try {
+    const verifier = crypto.createVerify('RSA-SHA256');
+    verifier.update(`${headerB64}.${payloadB64}`);
+    verifier.end();
+    const ok = verifier.verify(cert, Buffer.from(signatureB64, 'base64url'));
+    if (!ok) return null;
+  } catch (e) {
+    console.error('[Chat Proxy] Signature verify error:', e.message);
+    return null;
+  }
+
+  return payload;
 }
 
 export default async function handler(req, res) {
@@ -72,7 +123,7 @@ export default async function handler(req, res) {
   // Scoped CORS — never wildcard
   res.setHeader('Access-Control-Allow-Origin', ORIGIN);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-User-Tier');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Vary', 'Origin');
 
   if (req.method === 'OPTIONS') {
@@ -88,12 +139,17 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'API key not configured on server' });
   }
 
-  // --- Server-side rate limiting ---
-  // Verify Firebase token to get the real uid — do NOT trust X-User-Id header
+  // --- Auth: require a valid Firebase ID token (real signature verification) ---
   const authHeader = req.headers['authorization'];
   const decodedToken = await verifyFirebaseToken(authHeader);
-  const uid = decodedToken?.sub || 'anonymous';
-  const isPro = req.headers['x-user-tier'] === 'pro';
+  if (!decodedToken) {
+    return res.status(401).json({ error: 'Unauthorized: valid sign-in required' });
+  }
+
+  // --- Server-side rate limiting ---
+  const uid = decodedToken.sub;
+  // Tier comes from the verified token's custom claim — NEVER a client header.
+  const isPro = decodedToken.tier === 'pro' || decodedToken.pro === true;
   const { allowed, count, limit } = checkRateLimit(uid, isPro);
 
   res.setHeader('X-RateLimit-Limit', limit);
