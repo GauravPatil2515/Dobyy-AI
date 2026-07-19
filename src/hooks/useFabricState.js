@@ -16,6 +16,7 @@ const INITIAL = {
   activePreset: 0,
   panel:        'fabric',
   theme:        'light',
+  compare:      null,   // A-B compare baseline snapshot {sett,weave,ts,reps}
 }
 
 function reducer(state, action) {
@@ -36,6 +37,13 @@ function reducer(state, action) {
       const sett = (action.newState.sett || []).map(s => s.id ? s : {...s, id: uid()})
       return { ...action.newState, sett }
     }
+    // A-B compare: stash the current design as the baseline for side-by-side view
+    case 'SNAPSHOT_COMPARE':
+      return { ...state, compare: {
+        sett: state.sett.map(s => ({...s})),
+        weave: state.weave, ts: state.ts, reps: state.reps
+      }}
+    case 'CLEAR_COMPARE': return { ...state, compare: null }
     default: return state
   }
 }

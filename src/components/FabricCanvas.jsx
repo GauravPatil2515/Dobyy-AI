@@ -1,5 +1,6 @@
-import { useRef, useState, lazy, Suspense } from 'react'
-import { useFabricRenderer } from '../hooks/useFabricRenderer.js'
+import { useRef, useState, lazy, Suspense, useEffect } from 'react'
+import { useFabricRenderer, renderFabric } from '../hooks/useFabricRenderer.js'
+import { expandSett, weaveMatrix } from '../utils/weaveUtils.js'
 import { copyShareLink } from '../utils/shareUtils.js'
 import { shaftCount, wifTieup } from '../utils/weaveUtils.js'
 import { nearestPantone } from '../utils/pantoneData.js'
@@ -214,12 +215,28 @@ function PegPlan({ state }) {
                   background: pegged ? threads[i % threads.length] : 'var(--off)',
                   border: '1px solid var(--bdr)',
                   opacity: pegged ? 1 : 0.4,
-                }}/>
-              )
+                }}/>)
             })}
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+// Static fabric render for one half of the A-B compare view.
+function CompareCanvas({ snapshot, label }) {
+  const ref = useRef(null)
+  const threads = expandSett(snapshot.sett)
+  const tileSize = threads.length || 1
+  const matrix = weaveMatrix(snapshot.weave, tileSize)
+  useEffect(() => {
+    if (ref.current) renderFabric(ref.current, snapshot, matrix, threads)
+  }, [snapshot, matrix, threads])
+  return (
+    <div className="compare-half">
+      <div className="compare-label">{label}</div>
+      <canvas ref={ref} className="compare-canvas"/>
     </div>
   )
 }
@@ -258,6 +275,12 @@ export default function FabricCanvas({ state, dispatch }) {
               onClick={() => dispatch({type:'SET_TS', ts:state.ts+2})}>+</button>
           </div>
           <div className="export-btns">
+            <button
+              className={`exp-btn${state.compare ? ' active' : ''}`}
+              onClick={() => dispatch(state.compare ? {type:'CLEAR_COMPARE'} : {type:'SNAPSHOT_COMPARE'})}
+              title={state.compare ? 'Exit A-B compare' : 'Snapshot current design, then edit to compare'}>
+              {state.compare ? '✕ Compare' : '⇄ Compare'}
+            </button>
             <button className="exp-btn" onClick={() => exportPNG(canvasRef.current)}
               title="Download PNG">⬇ PNG</button>
             <button className="exp-btn" onClick={() => exportJSON(state)}
@@ -279,18 +302,25 @@ export default function FabricCanvas({ state, dispatch }) {
 
       <div className="canvas-wrap">
         {state.panel === 'fabric' && (
-          <>
-            <canvas ref={canvasRef} className="fabric-canvas"/>
-            {/* Pantone swatch row — hover any swatch to see nearest Pantone TCX */}
-            <div style={{
-              display:'flex', gap:4, justifyContent:'center',
-              padding:'6px 0', flexWrap:'wrap'
-            }}>
-              {state.sett.map((s, i) => (
-                <PantoneTooltip key={i} hex={s.c} />
-              ))}
+          state.compare ? (
+            <div className="compare-wrap">
+              <CompareCanvas snapshot={state.compare} label="A · baseline"/>
+              <CompareCanvas snapshot={{ sett: state.sett, weave: state.weave, ts: state.ts, reps: state.reps }} label="B · current"/>
             </div>
-          </>
+          ) : (
+            <>
+              <canvas ref={canvasRef} className="fabric-canvas"/>
+              {/* Pantone swatch row — hover any swatch to see nearest Pantone TCX */}
+              <div style={{
+                display:'flex', gap:4, justifyContent:'center',
+                padding:'6px 0', flexWrap:'wrap'
+              }}>
+                {state.sett.map((s, i) => (
+                  <PantoneTooltip key={i} hex={s.c} />
+                ))}
+              </div>
+            </>
+          )
         )}
         {state.panel === 'draft' && <DraftGrid state={state}/>}
         {state.panel === 'peg'   && <PegPlan state={state}/>}
