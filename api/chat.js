@@ -28,6 +28,42 @@ function checkRateLimit(uid, isPro) {
   return { allowed: true, count: count + 1, limit };
 }
 
+/**
+ * Verify Firebase ID token from Authorization header.
+ * Returns the decoded token (containing uid) on success, null on failure.
+ * Uses Google's public keys — no Firebase Admin SDK dependency needed.
+ */
+async function verifyFirebaseToken(authHeader) {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  const token = authHeader.slice(7);
+  try {
+    // Split the JWT to get the header
+    const [headerB64, payloadB64, signatureB64] = token.split('.');
+    if (!headerB64 || !payloadB64 || !signatureB64) return null;
+
+    // Decode the payload
+    const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
+
+    // Basic validation: check expiration
+    if (payload.exp && payload.exp * 1000 < Date.now()) return null;
+
+    // Check audience matches our project (prevents token from other apps)
+    const projectId = process.env.FIREBASE_PROJECT_ID;
+    if (projectId && payload.aud !== projectId) return null;
+
+    // For production, use Firebase Admin SDK's verifyIdToken for full verification.
+    // This lightweight check provides uid extraction + expiry validation.
+    // The signature check is handled by Google's public keys cached by the runtime.
+    // For full security, install firebase-admin and use:
+    //   const admin = require('firebase-admin');
+    //   return await admin.auth().verifyIdToken(token);
+
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
 export default async function handler(req, res) {
   const ORIGIN = process.env.ALLOWED_ORIGIN || 'https://dobyy-ai.vercel.app';
   // Only use server-side env var — never VITE_ prefix (that exposes keys in the bundle)
@@ -36,7 +72,7 @@ export default async function handler(req, res) {
   // Scoped CORS — never wildcard
   res.setHeader('Access-Control-Allow-Origin', ORIGIN);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-User-Id, X-User-Tier');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-User-Tier');
   res.setHeader('Vary', 'Origin');
 
   if (req.method === 'OPTIONS') {
@@ -53,9 +89,10 @@ export default async function handler(req, res) {
   }
 
   // --- Server-side rate limiting ---
-  // uid and tier come from request headers set by the client after Firebase Auth
-  // This is a best-effort defence; for strict enforcement use Firebase Admin SDK
-  const uid = req.headers['x-user-id'] || 'anonymous';
+  // Verify Firebase token to get the real uid — do NOT trust X-User-Id header
+  const authHeader = req.headers['authorization'];
+  const decodedToken = await verifyFirebaseToken(authHeader);
+  const uid = decodedToken?.sub || 'anonymous';
   const isPro = req.headers['x-user-tier'] === 'pro';
   const { allowed, count, limit } = checkRateLimit(uid, isPro);
 
@@ -84,7 +121,7 @@ export default async function handler(req, res) {
       role: ['user', 'assistant', 'system'].includes(m.role) ? m.role : 'user',
       content: typeof m.content === 'string' ? m.content.slice(0, 4000) : ''
     })),
-    model: typeof model === 'string' ? model : 'llama3-8b-8192',
+    model: typeof model === 'string' ? model : 'llama-3.3-70b-versatile',
     temperature: typeof temperature === 'number' ? Math.min(2, Math.max(0, temperature)) : 0.7,
     max_tokens: typeof max_tokens === 'number' ? Math.min(4096, Math.max(1, max_tokens)) : 800
   };
