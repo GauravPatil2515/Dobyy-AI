@@ -55,6 +55,16 @@ export function useFabricState() {
   const histIdx   = useRef(0)
   const skipDepth = useRef(0)
 
+  // Mirror undo/redo availability into state so the toolbar re-renders correctly.
+  // Refs (histIdx) do not trigger re-renders, so reading them during render goes stale.
+  const [historyFlags, setHistoryFlags] = useState({ canUndo: false, canRedo: false })
+  const syncHistoryFlags = useCallback(() => {
+    setHistoryFlags({
+      canUndo: histIdx.current > 0,
+      canRedo: histIdx.current < history.current.length - 1
+    })
+  }, [])
+
   const dispatchRef = useRef(null)
 
   const dispatchWithHistory = useCallback((action) => {
@@ -67,6 +77,7 @@ export function useFabricState() {
         history.current = history.current.slice(-MAX_HISTORY)
       }
       histIdx.current = history.current.length - 1
+      syncHistoryFlags()
     }
     dispatch(action)
   }, [])
@@ -79,7 +90,8 @@ export function useFabricState() {
     skipDepth.current += 1
     dispatch({ type: 'APPLY', newState: history.current[histIdx.current] })
     skipDepth.current -= 1
-  }, [])
+    syncHistoryFlags()
+  }, [syncHistoryFlags])
 
   const redo = useCallback(() => {
     if (histIdx.current >= history.current.length - 1) return
@@ -87,10 +99,11 @@ export function useFabricState() {
     skipDepth.current += 1
     dispatch({ type: 'APPLY', newState: history.current[histIdx.current] })
     skipDepth.current -= 1
-  }, [])
+    syncHistoryFlags()
+  }, [syncHistoryFlags])
 
-  const canUndo = histIdx.current > 0
-  const canRedo = histIdx.current < history.current.length - 1
+  const canUndo = historyFlags.canUndo
+  const canRedo = historyFlags.canRedo
 
   const processPrompt = useCallback(async (text, onReply) => {
     setLoading(true)
@@ -102,11 +115,17 @@ export function useFabricState() {
       const newState = { ...state }
 
       if (result.sett && Array.isArray(result.sett) && result.sett.length > 0) {
-        newState.sett = result.sett.map(s => ({
-          c: s.c || '#888888',
-          n: Math.max(1, Math.min(32, s.n || 4))
-          // id injected by APPLY reducer case
-        }))
+        // Sanitize: keep 2-12 stripes, validate hex, clamp thread count 1-32.
+        const HEX = /^#[0-9a-fA-F]{6}$/
+        newState.sett = result.sett
+          .filter(s => s && (HEX.test(s.c) || s.c == null))
+          .map(s => ({
+            c: HEX.test(s.c) ? s.c.toLowerCase() : '#888888',
+            n: Math.max(1, Math.min(32, Number(s.n) || 4))
+            // id injected by APPLY reducer case
+          }))
+          .slice(0, 12)
+        if (newState.sett.length === 0) newState.sett = state.sett
         newState.activePreset = -1
       }
       if (result.weave && VALID_WEAVES.includes(result.weave))
