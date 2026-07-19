@@ -5,7 +5,7 @@ import { loadEnv } from 'vite'
 export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const groqKey = env.VITE_GROQ_API_KEY || env.GROQ_API_KEY || ''
-  const orKey = env.VITE_OPENROUTER_API_KEY || env.OPENROUTER_API_KEY || '***REMOVED***'
+  const orKey = env.VITE_OPENROUTER_API_KEY || env.OPENROUTER_API_KEY || ''
 
   return {
     plugins: [react()],
@@ -22,7 +22,7 @@ export default defineConfig(({ command, mode }) => {
           }
         },
         '/api/openrouter': {
-          target: 'https://api.openrouter.ai',
+          target: 'https://openrouter.ai',
           changeOrigin: true,
           rewrite: path => path.replace(/^\/api\/openrouter/, '/api/v1/chat/completions'),
           configure: (proxy) => {

@@ -65,7 +65,7 @@ export async function askGroq(messages, currentState, isPro = false) {
   let token = null
   try {
     token = await auth.currentUser?.getIdToken()
-  } catch (_) {}
+  } catch (_) { }
 
   const headers = {
     'Content-Type': 'application/json',
@@ -77,12 +77,7 @@ export async function askGroq(messages, currentState, isPro = false) {
   const response = await fetch('/api/chat', {
     method: 'POST',
     headers,
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      messages: fullMessages,
-      temperature: 0.7,
-      max_tokens: 512
-    })
+    body: JSON.stringify({ messages: fullMessages })
   })
 
   if (!response.ok) {
@@ -91,6 +86,7 @@ export async function askGroq(messages, currentState, isPro = false) {
   }
 
   const data = await response.json()
+  // Groq/OpenAI shape: data.choices[0].message.content (server proxy returns full payload)
   const raw = data.choices?.[0]?.message?.content || data.content || data.message || ''
 
   // Strip markdown code fences if present

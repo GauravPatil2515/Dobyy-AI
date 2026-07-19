@@ -45,6 +45,8 @@ const HISTORY_ACTIONS = [
   'ADD_STRIPE','UPDATE_STRIPE','REMOVE_STRIPE','REORDER_SETT','APPLY'
 ]
 
+const MAX_HISTORY = 50
+
 export function useFabricState() {
   const [state, dispatch] = useReducer(reducer, INITIAL)
   const [loading, setLoading] = useState(false)
@@ -60,6 +62,10 @@ export function useFabricState() {
       const nextState = reducer(history.current[histIdx.current], action)
       history.current = history.current.slice(0, histIdx.current + 1)
       history.current.push(nextState)
+      // Cap history to prevent unbounded memory growth
+      if (history.current.length > MAX_HISTORY) {
+        history.current = history.current.slice(-MAX_HISTORY)
+      }
       histIdx.current = history.current.length - 1
     }
     dispatch(action)
