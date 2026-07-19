@@ -8,25 +8,67 @@ const FREE_DAILY_LIMIT = 5;
 const PRO_DAILY_LIMIT = 100;
 const MS_PER_DAY = 86_400_000;
 
-// In-memory rate limit store (resets on cold start; upgrade to Redis/KV for persistence).
-// Shared per-instance across routes so image + chat calls draw from one quota.
+// In-memory rate limit store — used only as a fallback when no durable KV is
+// configured. On Vercel, set KV_REST_API_URL + KV_REST_API_TOKEN (Vercel KV)
+// so the quota survives cold starts and is shared across all lambda instances.
 const rateLimitStore = new Map();
+const KV_URL = process.env.KV_REST_API_URL;
+const KV_TOKEN = process.env.KV_REST_API_TOKEN;
+const kvAvailable = Boolean(KV_URL && KV_TOKEN);
+
+async function kvGet(key) {
+  const res = await fetch(`${KV_URL}/get/${encodeURIComponent(key)}`, {
+    headers: { Authorization: `Bearer ${KV_TOKEN}` }
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data?.result ?? null; // Vercel KV REST returns { result }
+}
+
+async function kvIncr(key, ttlSec) {
+  // Atomic increment with daily expiry (best-effort; Vercel KV supports INCR + EXPIRE).
+  const res = await fetch(`${KV_URL}/incr/${encodeURIComponent(key)}`, {
+    headers: { Authorization: `Bearer ${KV_TOKEN}` }
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  const value = data?.result;
+  if (typeof value === 'number') {
+    await fetch(`${KV_URL}/expire/${encodeURIComponent(key)}/${ttlSec}`, {
+      headers: { Authorization: `Bearer ${KV_TOKEN}` }
+    }).catch(() => {});
+  }
+  return value;
+}
 
 export function getTodayKey() {
   return new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
 }
 
-export function checkRateLimit(uid, isPro) {
-  const key = `${uid}:${getTodayKey()}`;
-  const count = rateLimitStore.get(key) || 0;
+/**
+ * Per-uid daily quota. Uses Vercel KV when configured (durable, shared across
+ * instances), otherwise the in-memory Map (per-instance, resets on cold start).
+ */
+export async function checkRateLimit(uid, isPro) {
+  const key = `ratelimit:${uid}:${getTodayKey()}`;
   const limit = isPro ? PRO_DAILY_LIMIT : FREE_DAILY_LIMIT;
+
+  if (kvAvailable) {
+    // TTL slightly past end of day so the key auto-expires (secs until UTC midnight + 60s buffer).
+    const secsUntilMidnight = Math.ceil((Date.now() % MS_PER_DAY) / 1000) + 60;
+    const count = (await kvIncr(key, secsUntilMidnight)) ?? 0;
+    if (count > limit) return { allowed: false, count, limit };
+    return { allowed: true, count, limit };
+  }
+
+  // Fallback: in-memory store.
+  const count = rateLimitStore.get(key) || 0;
   if (count >= limit) return { allowed: false, count, limit };
   rateLimitStore.set(key, count + 1);
-  // Clean up old keys to prevent memory leak
   if (rateLimitStore.size > 10_000) {
-    const yesterday = new Date(Date.now() - MS_PER_DAY).toISOString().slice(0, 10);
+    const yKey = `ratelimit:${new Date(Date.now() - MS_PER_DAY).toISOString().slice(0, 10)}:`;
     for (const k of rateLimitStore.keys()) {
-      if (k.endsWith(yesterday)) rateLimitStore.delete(k);
+      if (k.startsWith(yKey)) rateLimitStore.delete(k);
     }
   }
   return { allowed: true, count: count + 1, limit };

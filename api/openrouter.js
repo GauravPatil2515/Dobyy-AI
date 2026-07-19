@@ -42,7 +42,7 @@ export default async function handler(req, res) {
   // --- Server-side rate limiting: image analysis draws from the same daily quota ---
   const uid = decodedToken.sub;
   const isPro = isProToken(decodedToken);
-  const { allowed, count, limit } = checkRateLimit(uid, isPro);
+  const { allowed, count, limit } = await checkRateLimit(uid, isPro);
 
   res.setHeader('X-RateLimit-Limit', limit);
   res.setHeader('X-RateLimit-Used', count);

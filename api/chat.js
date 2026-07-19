@@ -37,7 +37,7 @@ export default async function handler(req, res) {
   // --- Server-side rate limiting (tier from verified token claim, never a header) ---
   const uid = decodedToken.sub;
   const isPro = isProToken(decodedToken);
-  const { allowed, count, limit } = checkRateLimit(uid, isPro);
+  const { allowed, count, limit } = await checkRateLimit(uid, isPro);
 
   res.setHeader('X-RateLimit-Limit', limit);
   res.setHeader('X-RateLimit-Used', count);
