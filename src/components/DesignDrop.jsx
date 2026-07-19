@@ -34,12 +34,18 @@ export default function DesignDrop({ state, dispatch, onClose }) {
     setError(null)
     try {
       const prompts = VARIATION_PROMPTS.slice(0, 6)
-      const results = await Promise.all(
-        prompts.map(p =>
-          askGroq([{ role: 'user', content: `Create a ${p} of the current tartan.` }], state)
-            .catch(() => null)
+      // Run in batches of 2 to avoid rate-limit thrashing
+      const results = []
+      for (let i = 0; i < prompts.length; i += 2) {
+        const batch = prompts.slice(i, i + 2)
+        const batchResults = await Promise.all(
+          batch.map(p =>
+            askGroq([{ role: 'user', content: `Create a ${p} of the current tartan.` }], state)
+              .catch(() => null)
+          )
         )
-      )
+        results.push(...batchResults)
+      }
       const valid = results
         .filter(r => r && r.sett && r.sett.length > 0)
         .map((r, i) => ({ ...r, label: prompts[i] }))

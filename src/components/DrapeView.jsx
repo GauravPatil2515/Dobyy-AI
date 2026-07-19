@@ -154,14 +154,17 @@ export default function DrapeView({ state }) {
     }
   }, [])
 
-  // Update texture when state changes
+  // Update texture when state changes — debounce to avoid rebuild thrashing
   useEffect(() => {
     const { mat, texture } = sceneRef.current
     if (!mat || !texture) return
-    const texCanvas = buildFabricTexture(state)
-    if (!texCanvas) return
-    texture.image   = texCanvas
-    texture.needsUpdate = true
+    const timer = setTimeout(() => {
+      const texCanvas = buildFabricTexture(state)
+      if (!texCanvas) return
+      texture.image   = texCanvas
+      texture.needsUpdate = true
+    }, 100)
+    return () => clearTimeout(timer)
   }, [state.sett, state.weave, state.ts, state.reps])
 
   return (
