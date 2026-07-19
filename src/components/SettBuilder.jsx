@@ -16,6 +16,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useState } from 'react'
+import { nearestPantone } from '../utils/pantoneData.js'
 
 function SortableStripe({ stripe, idx, total, dispatch }) {
   const {
@@ -65,6 +66,21 @@ function SortableStripe({ stripe, idx, total, dispatch }) {
           patch: { n: Math.max(1, Math.min(32, +e.target.value)) }
         })}/>
       <span className="stripe-label">{stripe.n}t</span>
+
+      {/* Nearest Pantone TCX match (live) */}
+      {(() => {
+        const p = nearestPantone(stripe.c)
+        if (!p) return null
+        return (
+          <span
+            className="stripe-pantone"
+            title={`${p.name} · ${p.code} · Δ${p.delta}`}
+            style={{ marginLeft: 6, fontSize: '0.62rem', color: 'var(--ft)' }}
+          >
+            {p.code}
+          </span>
+        )
+      })()}
 
       {/* Delete */}
       {total > 1 && (
