@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useSubscription } from '../contexts/SubscriptionContext.jsx'
 import { t, getLang, setLang, SUPPORTED_LANGS } from '../utils/i18n.js'
+import { WEAVE_LABELS } from '../constants.js'
 
 export default function Header({ state, dispatch, undo, redo, canUndo, canRedo, onMenuToggle, onDesignDropOpen }) {
   const { user, logout } = useAuth()
@@ -9,8 +10,7 @@ export default function Header({ state, dispatch, undo, redo, canUndo, canRedo, 
   const [showProfile, setShowProfile] = useState(false)
   const [lang, setLangState] = useState(getLang())
 
-  const wl = { twill22:'2/2 twill', twill21:'2/1 twill', plain:'plain weave', satin5:'5-end satin',
-                twill31:'3/1 twill', basket2:'basket weave', hopsack:'hopsack' }
+  const wl = WEAVE_LABELS
   const total = state.sett.reduce((a,s) => a+s.n, 0)
 
   useEffect(() => {

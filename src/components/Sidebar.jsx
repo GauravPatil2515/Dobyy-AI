@@ -3,16 +3,7 @@ import RegistrySearch from './RegistrySearch.jsx'
 import Gallery from './Gallery.jsx'
 import { PRESETS } from '../data/presets.js'
 import { t } from '../utils/i18n.js'
-
-const WEAVES = [
-  { v:'twill22', l:'2/2 Twill (Tartan)' },
-  { v:'twill21', l:'2/1 Twill' },
-  { v:'twill31', l:'3/1 Twill' },
-  { v:'plain',   l:'Plain Weave' },
-  { v:'basket2', l:'Basket Weave' },
-  { v:'hopsack', l:'Hopsack' },
-  { v:'satin5',  l:'5-End Satin' },
-]
+import { WEAVES } from '../constants.js'
 
 export default function Sidebar({
   state, dispatch, className='',

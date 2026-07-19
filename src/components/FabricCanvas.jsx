@@ -1,23 +1,25 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, lazy, Suspense } from 'react'
 import { useFabricRenderer } from '../hooks/useFabricRenderer.js'
 import { copyShareLink } from '../utils/shareUtils.js'
 import { shaftCount, wifTieup } from '../utils/weaveUtils.js'
 import { nearestPantone } from '../utils/pantoneData.js'
 import { exportPDFTechSheet } from '../utils/pdfExport.js'
-import DrapeView from './DrapeView.jsx'
+import { PANELS, PANEL_LABELS, WEAVE_LABELS } from '../constants.js'
 
-const PANELS = ['fabric', 'draft', 'peg', 'drape']
-const PANEL_LABELS = {
-  fabric: 'Fabric',
-  draft:  'Draft',
-  peg:    'Peg Plan',
-  drape:  '3D Drape'
-}
-const WEAVE_LABELS = {
-  twill22:'2/2 Twill', twill21:'2/1 Twill',
-  plain:'Plain Weave', satin5:'5-End Satin',
-  twill31:'3/1 Twill', basket2:'Basket Weave',
-  hopsack:'Hopsack'
+const DrapeView = lazy(() => import('./DrapeView.jsx'))
+
+function DrapeViewFallback() {
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      borderRadius: 14, overflow: 'hidden',
+      background: '#1a1815',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      color: '#5c5648', fontSize: '0.8rem'
+    }}>
+      Loading 3D drape…
+    </div>
+  )
 }
 
 function exportPNG(canvas) {
@@ -292,7 +294,11 @@ export default function FabricCanvas({ state, dispatch }) {
         )}
         {state.panel === 'draft' && <DraftGrid state={state}/>}
         {state.panel === 'peg'   && <PegPlan state={state}/>}
-        {state.panel === 'drape' && <DrapeView state={state}/>}
+        {state.panel === 'drape' && (
+          <Suspense fallback={<DrapeViewFallback />}>
+            <DrapeView state={state}/>
+          </Suspense>
+        )}
       </div>
 
       <div className="status-bar">

@@ -5,13 +5,7 @@ import { fileToBase64, analyzeImageWithGroq, buildAnalysisMessage } from '../uti
 import { t, getLang } from '../utils/i18n.js'
 // FIX #3: import VoiceControl and wire it next to the attach button
 import VoiceControl from './VoiceControl.jsx'
-
-const WEAVE_LABELS = {
-  twill22:'2/2 Twill', twill21:'2/1 Twill',
-  plain:'Plain Weave', satin5:'5-End Satin',
-  twill31:'3/1 Twill', basket2:'Basket Weave',
-  hopsack:'Hopsack'
-}
+import { WEAVE_LABELS } from '../constants.js'
 
 function getContextChips(state) {
   const base = ['darker tones', 'lighter tones', 'complementary colors', 'muted palette']
