@@ -20,203 +20,251 @@ const DEFAULT_MATERIAL_PARAMS = { sheen: 0.4, sheenRoughness: 0.55, roughness: 0
 function buildKilt() {
   const group = new THREE.Group()
   const seg = 128
-  const R1 = 0.8
-  const R2 = 1.0
-  const H = 2.4
-  const pleatGeo = new THREE.CylinderGeometry(R1, R2, H, seg, 32, true)
+  const R1 = 0.82
+  const R2 = 1.05
+  const H = 2.2
+  const pleatGeo = new THREE.CylinderGeometry(R1, R2, H, seg, 48, true)
   const pos = pleatGeo.attributes.position
+  const uvs = pleatGeo.attributes.uv
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i)
     const ang = Math.atan2(z, x)
-    const isFront = (ang > -Math.PI/3 && ang < Math.PI/3)
+    const isFront = (ang > -Math.PI/3.5 && ang < Math.PI/3.5)
     let pleat = 0
-    if (!isFront) { pleat = Math.sin(ang * 40) * 0.08 }
+    if (!isFront) { pleat = Math.sin(ang * 36) * 0.04 }
     const len = Math.sqrt(x * x + z * z)
     const nl = len + pleat
     pos.setX(i, Math.cos(ang) * nl)
     pos.setZ(i, Math.sin(ang) * nl)
+    if (uvs) uvs.setXY(i, (ang + Math.PI) / (2 * Math.PI) * 4, (y + H/2) / H * 3)
   }
   pleatGeo.computeVertexNormals()
   const pleats = new THREE.Mesh(pleatGeo)
   pleats.rotation.y = Math.PI
   group.add(pleats)
-  const apronGeo = new THREE.CylinderGeometry(R1+0.05, R2+0.05, H, 32, 16, true, -Math.PI/4, Math.PI/2)
+
+  const apronGeo = new THREE.CylinderGeometry(R1 + 0.03, R2 + 0.03, H, 48, 24, true, -Math.PI/3.2, Math.PI/1.6)
   const apron = new THREE.Mesh(apronGeo)
   apron.rotation.y = -Math.PI / 4
   group.add(apron)
-  group.position.y = 0.2
+  group.position.y = 0.1
   return { mesh: group }
 }
 
 function buildScarf() {
   const group = new THREE.Group()
-  const neckGeo = new THREE.TorusGeometry(0.6, 0.25, 64, 128)
-  neckGeo.rotateX(Math.PI / 2)
-  neckGeo.scale(1, 0.6, 1.2)
+
+  // Main Neck Loop - Smooth curved torus
+  const neckGeo = new THREE.TorusGeometry(0.55, 0.18, 48, 96)
+  neckGeo.rotateX(Math.PI / 2.1)
+  neckGeo.scale(1.1, 0.7, 1.2)
   const neck = new THREE.Mesh(neckGeo)
-  neck.position.set(0, 1.6, 0)
+  neck.position.set(0, 1.5, 0)
   group.add(neck)
-  const tailGeo1 = new THREE.CylinderGeometry(0.25, 0.35, 2.5, 64, 64, true, 0, Math.PI)
-  tailGeo1.scale(1, 1, 0.3)
+
+  // Left Tail - Draped flat rectangle with subtle end curl
+  const tailGeo1 = new THREE.PlaneGeometry(0.5, 2.4, 32, 64)
+  const p1 = tailGeo1.attributes.position
+  const u1 = tailGeo1.attributes.uv
+  for (let i = 0; i < p1.count; i++) {
+    const y = p1.getY(i)
+    const curve = Math.sin((y + 1.2) * 2.0) * 0.06
+    p1.setZ(i, curve)
+    if (u1) u1.setXY(i, u1.getX(i) * 2, u1.getY(i) * 4)
+  }
+  tailGeo1.computeVertexNormals()
   const tail1 = new THREE.Mesh(tailGeo1)
-  tail1.position.set(-0.35, 0.4, 0.7)
-  tail1.rotation.z = 0.1
-  tail1.rotation.y = 0.2
+  tail1.position.set(-0.3, 0.3, 0.65)
+  tail1.rotation.y = 0.15
   group.add(tail1)
-  const tailGeo2 = new THREE.CylinderGeometry(0.25, 0.4, 2.8, 64, 64, true, 0, Math.PI)
-  tailGeo2.scale(1, 1, 0.2)
+
+  // Right Tail
+  const tailGeo2 = new THREE.PlaneGeometry(0.48, 2.7, 32, 64)
+  const p2 = tailGeo2.attributes.position
+  const u2 = tailGeo2.attributes.uv
+  for (let i = 0; i < p2.count; i++) {
+    const y = p2.getY(i)
+    const curve = Math.cos((y + 1.35) * 1.8) * 0.07
+    p2.setZ(i, curve)
+    if (u2) u2.setXY(i, u2.getX(i) * 2, u2.getY(i) * 4.5)
+  }
+  tailGeo2.computeVertexNormals()
   const tail2 = new THREE.Mesh(tailGeo2)
-  tail2.position.set(0.35, 0.3, 0.6)
-  tail2.rotation.z = -0.15
-  tail2.rotation.y = -0.3
+  tail2.position.set(0.3, 0.15, 0.62)
+  tail2.rotation.y = -0.2
   group.add(tail2)
-  group.traverse(c => {
-    if (c.isMesh) {
-      const pos = c.geometry.attributes.position
-      for (let i = 0; i < pos.count; i++) {
-        const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i)
-        const noise = Math.sin(x*15 + y*5)*0.02 + Math.cos(z*20 - y*10)*0.015
-        const drape = (2.0 - y) * 0.02 * Math.sin(y * 8)
-        pos.setX(i, x + noise + drape)
-        pos.setZ(i, z + noise)
-      }
-      c.geometry.computeVertexNormals()
-    }
-  })
-  group.position.y = -0.6
+
+  group.position.y = -0.4
   return { mesh: group }
 }
 
 function buildJacket() {
   const group = new THREE.Group()
-  const bodyGeo = new THREE.CylinderGeometry(0.9, 1.0, 2.6, 64, 32, true)
+
+  // Tailored Torso
+  const bodyGeo = new THREE.CylinderGeometry(0.85, 0.92, 2.4, 64, 48, true)
+  const pos = bodyGeo.attributes.position
+  const uvs = bodyGeo.attributes.uv
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i)
+    const ang = Math.atan2(z, x)
+    // Lapel opening in front
+    let lapel = 0
+    if (ang > Math.PI * 0.38 && ang < Math.PI * 0.62 && y > 0) {
+      lapel = (y / 1.2) * 0.12
+    }
+    const microCloth = Math.sin(y * 6 + x * 4) * 0.008
+    pos.setX(i, x * (1 + microCloth) - lapel * Math.cos(ang))
+    pos.setZ(i, z * (1 + microCloth) - lapel * Math.sin(ang))
+    if (uvs) uvs.setXY(i, (ang + Math.PI) / (2 * Math.PI) * 3, (y + 1.2) / 2.4 * 3)
+  }
+  bodyGeo.computeVertexNormals()
   const body = new THREE.Mesh(bodyGeo)
   group.add(body)
-  const sleeveGeo = new THREE.CylinderGeometry(0.35, 0.28, 2.0, 32, 32, true)
-  const left = new THREE.Mesh(sleeveGeo)
-  left.rotation.z = Math.PI / 2.8
-  left.position.set(-1.3, 0.1, 0)
-  group.add(left)
-  const right = new THREE.Mesh(sleeveGeo)
-  right.rotation.z = -Math.PI / 2.8
-  right.position.set(1.3, 0.1, 0)
-  group.add(right)
-  group.traverse(c => {
-    if (c.isMesh) {
-      const pos = c.geometry.attributes.position
-      for (let i = 0; i < pos.count; i++) {
-        const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i)
-        const fold = Math.sin(y*12)*0.03 + Math.cos(x*10)*0.02
-        pos.setX(i, x + fold*(x > 0 ? 1 : -1))
-        pos.setZ(i, z + fold)
-      }
-      c.geometry.computeVertexNormals()
+
+  // Sleek Tailored Sleeves (Angled smoothly without accordion distortions!)
+  const makeSleeve = (offsetX, rotationZ) => {
+    const sleeveGeo = new THREE.CylinderGeometry(0.32, 0.24, 2.1, 48, 32, true)
+    const p = sleeveGeo.attributes.position
+    const u = sleeveGeo.attributes.uv
+    for (let i = 0; i < p.count; i++) {
+      const y = p.getY(i), z = p.getZ(i)
+      const elbowBend = (y < 0) ? Math.sin(-y * 1.5) * 0.05 : 0
+      p.setZ(i, z + elbowBend)
+      if (u) u.setXY(i, u.getX(i) * 2, u.getY(i) * 3)
     }
-  })
-  group.position.y = 0.2
+    sleeveGeo.computeVertexNormals()
+    const sleeve = new THREE.Mesh(sleeveGeo)
+    sleeve.position.set(offsetX, 0.05, 0.05)
+    sleeve.rotation.z = rotationZ
+    sleeve.rotation.x = 0.1
+    return sleeve
+  }
+
+  group.add(makeSleeve(-1.05, Math.PI / 6))
+  group.add(makeSleeve(1.05, -Math.PI / 6))
+
+  // Collar Band
+  const collarGeo = new THREE.TorusGeometry(0.42, 0.08, 24, 48, Math.PI * 1.4)
+  collarGeo.rotateX(Math.PI / 2.2)
+  collarGeo.rotateZ(-Math.PI * 0.7)
+  const collar = new THREE.Mesh(collarGeo)
+  collar.position.set(0, 1.22, -0.05)
+  group.add(collar)
+
+  group.position.y = 0.1
   return { mesh: group }
 }
 
 function buildThrow() {
-  const SEG = 128
-  const geo = new THREE.PlaneGeometry(5, 5, SEG, SEG)
+  const SEG = 96
+  const geo = new THREE.PlaneGeometry(4.5, 4.5, SEG, SEG)
   const pos = geo.attributes.position
+  const uvs = geo.attributes.uv
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i), y = pos.getY(i)
     let z = 0
-    if (y > 0.5) z = Math.cos((y - 0.5) * 1.5) * -1.0 + 1.0
-    if (y <= 0.5 && y > -1.0) z = (0.5 - y) * 1.2
-    if (y <= -1.0) z = 1.8
-    if (Math.abs(x) > 1.2 && y > -1.0 && y < 1.0) z += 0.8
-    const fold1 = Math.sin(x * 6 + y * 3) * 0.08
-    const fold2 = Math.cos(x * 12 - y * 8) * 0.03
-    pos.setZ(i, z + fold1 + fold2)
+    if (y > 0.5) z = Math.cos((y - 0.5) * 1.2) * -0.8 + 0.8
+    if (y <= 0.5 && y > -1.0) z = (0.5 - y) * 0.9
+    if (y <= -1.0) z = 1.35
+    const softFold = Math.sin(x * 3 + y * 2) * 0.06 + Math.cos(x * 6 - y * 4) * 0.02
+    pos.setZ(i, z + softFold)
+    if (uvs) uvs.setXY(i, uvs.getX(i) * 4, uvs.getY(i) * 4)
   }
   geo.computeVertexNormals()
   const mesh = new THREE.Mesh(geo)
   mesh.rotation.x = -Math.PI / 4
-  mesh.position.set(0, 0, -1)
+  mesh.position.set(0, 0, -0.8)
   return { mesh }
 }
 
 function buildShirt() {
   const group = new THREE.Group()
-  const bodyGeo = new THREE.CylinderGeometry(0.75, 0.72, 2.2, 64, 32, true)
+  const bodyGeo = new THREE.CylinderGeometry(0.78, 0.74, 2.3, 64, 48, true)
   const pos = bodyGeo.attributes.position
+  const uvs = bodyGeo.attributes.uv
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i)
     const ang = Math.atan2(z, x)
     let placket = 0
-    if (ang > Math.PI*0.4 && ang < Math.PI*0.6) { placket = 0.03 }
-    const fold = Math.sin(y * 14) * 0.02
-    pos.setX(i, x * (1 + fold) + placket * Math.cos(ang))
-    pos.setZ(i, z * (1 + fold) + placket * Math.sin(ang))
+    if (ang > Math.PI*0.42 && ang < Math.PI*0.58) { placket = 0.025 }
+    pos.setX(i, x + placket * Math.cos(ang))
+    pos.setZ(i, z + placket * Math.sin(ang))
+    if (uvs) uvs.setXY(i, (ang + Math.PI) / (2 * Math.PI) * 3, (y + 1.15) / 2.3 * 3)
   }
   bodyGeo.computeVertexNormals()
   const body = new THREE.Mesh(bodyGeo)
   group.add(body)
-  const collarGeo = new THREE.TorusGeometry(0.38, 0.1, 32, 64, Math.PI * 1.5)
+
+  const collarGeo = new THREE.TorusGeometry(0.38, 0.09, 24, 48, Math.PI * 1.5)
   collarGeo.rotateX(Math.PI / 2.2)
   collarGeo.rotateZ(-Math.PI * 0.75)
   const collar = new THREE.Mesh(collarGeo)
-  collar.position.set(0, 1.15, 0)
+  collar.position.set(0, 1.18, 0)
   group.add(collar)
-  const sleeveGeo = new THREE.CylinderGeometry(0.28, 0.22, 1.6, 32, 32, true)
-  const left = new THREE.Mesh(sleeveGeo)
-  left.rotation.z = Math.PI / 3.2
-  left.position.set(-0.95, 0.25, 0)
+
+  const sleeveGeo1 = new THREE.CylinderGeometry(0.28, 0.22, 1.8, 32, 32, true)
+  const left = new THREE.Mesh(sleeveGeo1)
+  left.rotation.z = Math.PI / 4
+  left.position.set(-0.95, 0.2, 0)
   group.add(left)
-  const right = new THREE.Mesh(sleeveGeo)
-  right.rotation.z = -Math.PI / 3.2
-  right.position.set(0.95, 0.25, 0)
+
+  const sleeveGeo2 = new THREE.CylinderGeometry(0.28, 0.22, 1.8, 32, 32, true)
+  const right = new THREE.Mesh(sleeveGeo2)
+  right.rotation.z = -Math.PI / 4
+  right.position.set(0.95, 0.2, 0)
   group.add(right)
-  group.traverse(c => {
-    if (c.isMesh) {
-      const p = c.geometry.attributes.position
-      for (let i = 0; i < p.count; i++) {
-        const x = p.getX(i), y = p.getY(i), z = p.getZ(i)
-        const fold = Math.sin(y * 16 + x * 6) * 0.015
-        p.setZ(i, z + fold)
-      }
-      c.geometry.computeVertexNormals()
-    }
-  })
+
   group.position.y = 0.1
   return { mesh: group }
 }
 
 function buildPants() {
   const group = new THREE.Group()
-  const waistGeo = new THREE.CylinderGeometry(0.78, 0.76, 0.4, 64, 8, true)
+
+  // Waistband
+  const waistGeo = new THREE.CylinderGeometry(0.76, 0.74, 0.35, 64, 16, true)
   const waist = new THREE.Mesh(waistGeo)
-  waist.position.y = 1.2
+  waist.position.y = 1.15
   group.add(waist)
-  const legGeo1 = new THREE.CylinderGeometry(0.38, 0.26, 2.4, 32, 32, true)
-  const p1 = legGeo1.attributes.position
-  for (let i = 0; i < p1.count; i++) {
-    const x = p1.getX(i), y = p1.getY(i), z = p1.getZ(i)
-    const crease = (z > 0.15) ? Math.sin(y * 8) * 0.015 + 0.02 : 0
-    const knee = (y > -0.2 && y < 0.2) ? Math.sin((y + 0.2) * Math.PI / 0.4) * 0.03 : 0
-    p1.setZ(i, z + crease + knee)
+
+  // Crotch / Hip joining region
+  const hipGeo = new THREE.CylinderGeometry(0.74, 0.70, 0.5, 64, 16, true)
+  const hp = hipGeo.attributes.position
+  const hu = hipGeo.attributes.uv
+  for (let i = 0; i < hp.count; i++) {
+    const x = hp.getX(i), y = hp.getY(i), z = hp.getZ(i)
+    const ang = Math.atan2(z, x)
+    const fly = (ang > Math.PI * 0.4 && ang < Math.PI * 0.6 && y > -0.1) ? 0.03 : 0
+    hp.setZ(i, z * (1 + (y < 0 ? 0.05 : 0)) + fly)
+    if (hu) hu.setXY(i, (ang + Math.PI) / (2 * Math.PI) * 3, (y + 0.25) / 0.5 * 1)
   }
-  legGeo1.computeVertexNormals()
-  const leg1 = new THREE.Mesh(legGeo1)
-  leg1.position.set(-0.38, -0.2, 0)
-  leg1.rotation.z = -0.04
-  group.add(leg1)
-  const legGeo2 = new THREE.CylinderGeometry(0.38, 0.26, 2.4, 32, 32, true)
-  const p2 = legGeo2.attributes.position
-  for (let i = 0; i < p2.count; i++) {
-    const x = p2.getX(i), y = p2.getY(i), z = p2.getZ(i)
-    const crease = (z > 0.15) ? Math.sin(y * 8) * 0.015 + 0.02 : 0
-    const knee = (y > -0.2 && y < 0.2) ? Math.sin((y + 0.2) * Math.PI / 0.4) * 0.03 : 0
-    p2.setZ(i, z + crease + knee)
+  hipGeo.computeVertexNormals()
+  const hips = new THREE.Mesh(hipGeo)
+  hips.position.y = 0.75
+  group.add(hips)
+
+  // Left & Right Legs with clean UV projection and no accordion distortions
+  const makeLeg = (offsetX, angleZ) => {
+    const legGeo = new THREE.CylinderGeometry(0.35, 0.25, 2.2, 48, 32, true)
+    const p = legGeo.attributes.position
+    const u = legGeo.attributes.uv
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i), y = p.getY(i), z = p.getZ(i)
+      const ang = Math.atan2(z, x)
+      const crease = (z > 0.1) ? 0.02 : 0
+      p.setZ(i, z + crease)
+      if (u) u.setXY(i, (ang + Math.PI) / (2 * Math.PI) * 2, (y + 1.1) / 2.2 * 3)
+    }
+    legGeo.computeVertexNormals()
+    const leg = new THREE.Mesh(legGeo)
+    leg.position.set(offsetX, -0.4, 0)
+    leg.rotation.z = angleZ
+    return leg
   }
-  legGeo2.computeVertexNormals()
-  const leg2 = new THREE.Mesh(legGeo2)
-  leg2.position.set(0.38, -0.2, 0)
-  leg2.rotation.z = 0.04
-  group.add(leg2)
+
+  group.add(makeLeg(-0.34, -0.02))
+  group.add(makeLeg(0.34, 0.02))
   group.position.y = 0.1
   return { mesh: group }
 }

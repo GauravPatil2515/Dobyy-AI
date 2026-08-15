@@ -76,12 +76,17 @@ export async function askGroq(messages, currentState, isPro = false) {
   const response = await fetch('/api/chat', {
     method: 'POST',
     headers,
-    body: JSON.stringify({ messages: fullMessages })
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      response_format: { type: "json_object" },
+      messages: fullMessages
+    })
   })
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}))
-    throw new Error(err.error || `HTTP ${response.status}`)
+    const errorMsg = err.error && typeof err.error === 'object' ? err.error.message : (err.error || `HTTP ${response.status}`)
+    throw new Error(errorMsg)
   }
 
   const data = await response.json()
