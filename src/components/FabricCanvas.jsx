@@ -8,6 +8,7 @@ import { exportPDFTechSheet } from '../utils/pdfExport.js'
 import { PANELS, PANEL_LABELS, WEAVE_LABELS } from '../constants.js'
 
 const DrapeView = lazy(() => import('./DrapeView.jsx'))
+const TryOnView = lazy(() => import('./TryOnView.jsx'))
 
 function DrapeViewFallback() {
   return (
@@ -244,6 +245,7 @@ function CompareCanvas({ snapshot, label }) {
 export default function FabricCanvas({ state, dispatch }) {
   const canvasRef = useRef(null)
   const [copied, setCopied] = useState(false)
+  const [garment, setGarment] = useState('kilt')
   useFabricRenderer(canvasRef, state)
 
   const handleShare = async () => {
@@ -327,6 +329,11 @@ export default function FabricCanvas({ state, dispatch }) {
         {state.panel === 'drape' && (
           <Suspense fallback={<DrapeViewFallback />}>
             <DrapeView state={state}/>
+          </Suspense>
+        )}
+        {state.panel === 'tryon' && (
+          <Suspense fallback={<DrapeViewFallback />}>
+            <TryOnView state={state} garment={garment} onGarmentChange={setGarment} />
           </Suspense>
         )}
       </div>

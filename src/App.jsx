@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react'
 import { useFabricState } from './hooks/useFabricState.js'
 import { useFirestoreGallery } from './hooks/useFirestoreGallery.js'
 import { useAuth } from './contexts/AuthContext.jsx'
@@ -11,8 +11,10 @@ import ChatPanel    from './components/ChatPanel.jsx'
 import LandingPage  from './components/LandingPage.jsx'
 import LoginPage    from './components/LoginPage.jsx'
 import UpgradeModal from './components/UpgradeModal.jsx'
+import Toaster      from './components/Toaster.jsx'
 
 const DesignDrop = lazy(() => import('./components/DesignDrop.jsx'))
+const ImageToDesignModal = lazy(() => import('./components/ImageToDesignModal.jsx'))
 
 export default function App() {
   const { isAuthenticated, loading: authLoading } = useAuth()
@@ -20,6 +22,18 @@ export default function App() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   // FIX #2: state to show/hide DesignDrop modal
   const [showDesignDrop, setShowDesignDrop] = useState(false)
+  // Image-to-Design wizard modal: holds the chosen file, preview URL, and base64
+  const [imageModal, setImageModal] = useState(null) // { file, dataUrl, base64 } | null
+  const openImageModal = useCallback(async (file, dataUrl) => {
+    try {
+      const { fileToBase64 } = await import('./utils/imageAnalyzer.js')
+      const base64 = await fileToBase64(file)
+      setImageModal({ file, dataUrl, base64 })
+    } catch (err) {
+      console.error('[App] image prep failed', err)
+      setImageModal({ file, dataUrl, base64: null })
+    }
+  }, [])
   const [showLanding, setShowLanding] = useState(
     () => !sessionStorage.getItem('dobby-entered')
   )
@@ -144,7 +158,7 @@ export default function App() {
           gridTemplateColumns: `${leftWidth}px 1fr ${rightWidth}px`,
           cursor: resizing ? 'col-resize' : 'auto'
         }}>
-          <div style={{ display: 'flex', position: 'relative' }}>
+          <div style={{ display: 'flex', position: 'relative', height: '100%', minHeight: 0, overflow: 'hidden', width: '100%' }}>
             <Sidebar
               state={state} dispatch={dispatch}
               className={sidebarOpen ? 'open' : ''}
@@ -167,7 +181,7 @@ export default function App() {
             />
           </div>
           <FabricCanvas state={state} dispatch={dispatch}/>
-          <div style={{ display: 'flex', position: 'relative' }}>
+          <div style={{ display: 'flex', position: 'relative', height: '100%', minHeight: 0, overflow: 'hidden', width: '100%' }}>
             <div
               className="resize-handle resize-handle-left"
               onMouseDown={() => {
@@ -185,7 +199,8 @@ export default function App() {
               onLimitExceeded={() => setShowUpgradeModal(true)}
               remainingCalls={getRemainingCalls()}
               isPro={isPro}
-              dailyLimit={subscription.dailyApiCalls}/>
+              dailyLimit={subscription.dailyApiCalls}
+              onImageModalOpen={openImageModal}/>
           </div>
         </div>
       </div>
@@ -200,6 +215,17 @@ export default function App() {
         </Suspense>
       )}
 
+      {/* Image-to-Design wizard modal */}
+      {imageModal && (
+        <Suspense fallback={null}>
+          <ImageToDesignModal
+            imageDataUrl={imageModal.dataUrl}
+            base64={imageModal.base64}
+            dispatch={dispatch}
+            onClose={() => setImageModal(null)}/>
+        </Suspense>
+      )}
+
       {showUpgradeModal && (
         <UpgradeModal
           onClose={() => setShowUpgradeModal(false)}
@@ -208,6 +234,8 @@ export default function App() {
           }}
         />
       )}
+
+      <Toaster/>
     </>
   )
 }

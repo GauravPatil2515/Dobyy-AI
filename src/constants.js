@@ -20,11 +20,21 @@ export const WEAVES = [
   { v: 'satin5',  l: '5-End Satin' },
 ]
 
-export const PANELS = ['fabric', 'draft', 'peg', 'drape']
+export const PANELS = ['fabric', 'draft', 'peg', 'drape', 'tryon']
 
 export const PANEL_LABELS = {
   fabric: 'Fabric',
   draft:  'Draft',
   peg:    'Peg Plan',
   drape:  '3D Drape',
+  tryon:  '👕 Try-On',
+}
+
+// Garment silhouettes for the Virtual Try-On view (procedural Three.js geometry).
+export const GARMENTS = ['kilt', 'scarf', 'jacket', 'throw']
+export const GARMENT_LABELS = {
+  kilt:   'Kilt',
+  scarf:  'Scarf / Stole',
+  jacket: 'Jacket Panel',
+  throw:  'Throw / Blanket',
 }

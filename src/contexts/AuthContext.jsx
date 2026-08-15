@@ -14,10 +14,10 @@ const DEMO_USER = {
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState(DEMO_USER)
+  const [loading, setLoading] = useState(false)
   const [isOffline, setIsOffline] = useState(!navigator.onLine)
-  const [useDemoMode, setUseDemoMode] = useState(false)
+  const [useDemoMode, setUseDemoMode] = useState(true)
 
   useEffect(() => {
     const handleOnline = () => setIsOffline(false)
@@ -33,36 +33,25 @@ export function AuthProvider({ children }) {
   }, [])
 
   useEffect(() => {
-    // If offline, use demo mode immediately
-    if (isOffline) {
-      setUser(DEMO_USER)
-      setLoading(false)
-      setUseDemoMode(true)
-      return
-    }
-
-    // Online mode - use Firebase auth
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUser(user)
+    // Online mode - use Firebase auth if available, else keep DEMO_USER
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        setUser(firebaseUser)
         setUseDemoMode(false)
-      } else if (useDemoMode) {
-        // Keep demo mode if already active
-        setUser(DEMO_USER)
       } else {
-        setUser(null)
+        setUser(DEMO_USER)
+        setUseDemoMode(true)
       }
       setLoading(false)
     }, (error) => {
       console.error('Auth state error:', error)
-      // Fallback to demo mode on auth error
       setUser(DEMO_USER)
       setUseDemoMode(true)
       setLoading(false)
     })
 
     return unsubscribe
-  }, [isOffline, useDemoMode])
+  }, [])
 
   const signInWithGoogle = async () => {
     if (isOffline) {

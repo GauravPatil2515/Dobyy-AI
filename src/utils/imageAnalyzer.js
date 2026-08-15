@@ -317,6 +317,189 @@ Example valid response:
   }
 }
 
+// ════════════════════════════════════════════════════════════
+// ENHANCED IMAGE-TO-DESIGN: structure classification + weave mapping
+// ════════════════════════════════════════════════════════════
+
+// Map a detected fabric structure label → weave key (validated against constants).
+const STRUCTURE_TO_WEAVE = {
+  tartan:        'twill22',
+  plaid:         'twill22',
+  twill:         'twill22',
+  herringbone:   'twill21',
+  '2/1 twill':   'twill21',
+  ikat:          'plain',
+  solid:         'plain',
+  plain:         'plain',
+  satin:         'satin5',
+  '5-end satin': 'satin5',
+  gingham:       'basket2',
+  basket:        'basket2',
+  hopsack:       'hopsack',
+}
+
+const VALID_WEAVES = ['twill22', 'twill21', 'plain', 'satin5', 'twill31', 'basket2', 'hopsack']
+
+/**
+ * Suggest the best weave key from a structure label returned by the vision model.
+ * Falls back to a sensible default when the label is unknown or invalid.
+ */
+export function suggestWeaveFromStructure(structureLabel) {
+  if (!structureLabel) return 'twill22'
+  const key = String(structureLabel).toLowerCase().trim()
+  for (const [label, weave] of Object.entries(STRUCTURE_TO_WEAVE)) {
+    if (key.includes(label)) return weave
+  }
+  return 'twill22'
+}
+
+/**
+ * Collapse very similar hex colors in a sett into one stripe by summing
+ * their thread counts. `threshold` is the max summed RGB distance (0-255 per channel).
+ */
+export function mergeNearColors(sett, threshold = 48) {
+  const HEX = /^#[0-9a-fA-F]{6}$/
+  const norm = s => ({
+    c: HEX.test(s.c) ? s.c.toLowerCase() : '#888888',
+    n: Math.max(1, Math.min(32, Number(s.n) || 4)),
+  })
+  const out = []
+  for (const raw of sett) {
+    const s = norm(raw)
+    const [r, g, b] = [s.c.slice(1,3), s.c.slice(3,5), s.c.slice(5,7)].map(h => parseInt(h, 16))
+    const match = out.find(o => {
+      const [or, og, ob] = [o.c.slice(1,3), o.c.slice(3,5), o.c.slice(5,7)].map(h => parseInt(h, 16))
+      return Math.abs(or - r) + Math.abs(og - g) + Math.abs(ob - b) <= threshold * 3
+    })
+    if (match) match.n += s.n
+    else out.push({ ...s })
+  }
+  return out
+}
+
+/**
+ * Two-stage enhanced analysis:
+ *  Stage 1 — extract dominant colors + stripe proportions (existing prompt shape).
+ *  Stage 2 — classify fabric structure (tartan, ikat, herringbone, paisley, solid)
+ *            to auto-select the best weave.
+ * `onProgress` receives per-stage status updates. Falls back to k-means + twill22
+ * when no token / offline / error (matching analyzeImageWithGroq behavior).
+ */
+export async function analyzeImageAdvanced(base64Data, onProgress) {
+  // Auth + offline fallback mirror analyzedImageWithGroq.
+  let token = null
+  try {
+    const { auth } = await import('../firebase.js')
+    token = await auth.currentUser?.getIdToken()
+  } catch (_) { /* anonymous / offline */ }
+
+  if (!token) {
+    onProgress?.({ error: 'no-auth', message: '⚠️ Sign in to use AI image analysis. Using local color extraction.' })
+    const fallback = await localKMeansExtract(base64Data)
+    return {
+      sett: fallback,
+      weave: 'twill22',
+      structure: 'unknown',
+      confidence: 60,
+      description: 'Local K-means color extraction (not signed in)',
+      source: 'fallback-noauth',
+    }
+  }
+
+  onProgress?.({ status: 'analyzing-colors' })
+
+  const colorRes = await fetch('/api/openrouter', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({
+      endpoint: 'chat/completions',
+      payload: {
+        model: 'meta-llama/llama-4-maverick:free',
+        messages: [
+          { role: 'system', content: 'You are a textile pattern analysis API. Respond with ONLY raw JSON, no markdown.' },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `Analyze this fabric/tartan image.
+Return ONLY this JSON: {"sett":[{"c":"#hexcolor","n":threadcount}],"structure":"tartan|plaid|herringbone|ikat|paisley|solid|gingham","confidence":85,"description":"brief"}
+Rules: c = dominant hex of each visible stripe; n = integer 2-12 proportional to stripe width; 4-8 stripes max; list left-to-right.`
+              },
+              { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Data}` } },
+            ],
+          },
+        ],
+        max_tokens: 220,
+        temperature: 0.05,
+      },
+    }),
+  })
+
+  const parseSett = (raw) => {
+    let json = null
+    try { json = JSON.parse(raw.trim()) } catch (_) {}
+    if (!json) {
+      const m = raw.match(/\{[\s\S]*\}/)
+      if (m) try { json = JSON.parse(m[0]) } catch (_) {}
+    }
+    if (!json && raw.includes('"c"') && raw.includes('"n"')) {
+      const colors = []
+      const re = /"c"\s*:\s*"(#[0-9a-fA-F]{6})"\s*,\s*"n"\s*:\s*(\d+)/g
+      let mm
+      while ((mm = re.exec(raw)) !== null) colors.push({ c: mm[1], n: parseInt(mm[2]) })
+      const weaveMatch = raw.match(/"structure"\s*:\s*"(\w+)"/)
+      if (colors.length >= 2) json = { sett: colors, structure: weaveMatch?.[1] }
+    }
+    if (json && json.sett && Array.isArray(json.sett) && json.sett.length >= 2) {
+      const sanitized = json.sett
+        .filter(s => s.c && s.n && parseInt(s.n) > 0)
+        .map(s => ({
+          c: /^#[0-9a-fA-F]{6}$/i.test(s.c) ? s.c.toLowerCase() : '#888888',
+          n: Math.max(1, Math.min(12, parseInt(s.n))),
+        }))
+      if (sanitized.length >= 2) {
+        return {
+          sett: sanitized,
+          structure: json.structure || 'unknown',
+          confidence: json.confidence || 75,
+          description: json.description || 'Fabric pattern extracted',
+        }
+      }
+    }
+    return null
+  }
+
+  if (!colorRes.ok) {
+    onProgress?.({ error: `http-${colorRes.status}`, message: '⏳ Analysis failed — using local extraction.' })
+    const fb = await localKMeansExtract(base64Data)
+    return { sett: fb, weave: 'twill22', structure: 'unknown', confidence: 55, description: 'Fallback (API error)', source: 'fallback-error' }
+  }
+
+  const colorData = await colorRes.json()
+  const colorRaw = colorData.data?.choices?.[0]?.message?.content || ''
+  const colorParsed = parseSett(colorRaw)
+
+  if (!colorParsed) {
+    onProgress?.({ error: 'parse-failed', message: 'AI returned unexpected format. Using color extraction fallback…' })
+    const fb = await localKMeansExtract(base64Data)
+    return { sett: fb, weave: 'twill22', structure: 'unknown', confidence: 60, description: 'Local color extraction (parse failed)', source: 'fallback-parse' }
+  }
+
+  // Stage 2 — weave suggestion from structure (already in stage 1 payload when available).
+  const weave = suggestWeaveFromStructure(colorParsed.structure)
+  onProgress?.({ status: 'done', weave })
+
+  return {
+    sett: colorParsed.sett,
+    weave,
+    structure: colorParsed.structure,
+    confidence: colorParsed.confidence,
+    description: colorParsed.description,
+    source: 'api-success',
+  }
+}
+
 /**
  * FIX 5: Build visual debug HTML with color swatches
  */

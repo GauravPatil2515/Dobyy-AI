@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useSubscription } from '../contexts/SubscriptionContext.jsx'
 import FabricThumb from './FabricThumb.jsx'
+import { toast } from '../utils/toast.js'
 
 export default function Gallery({ 
   gallery, 
@@ -19,14 +20,14 @@ export default function Gallery({
 
   const handleSave = async () => {
     if (!canSaveMore) {
-      alert(`Free tier limited to ${maxDesigns} designs. Delete some to save more.`)
+      toast(`Free tier limited to ${maxDesigns} designs. Delete some to save more.`, 'warn')
       return
     }
     try {
       await onSave(saveName || undefined)
       setSaveName('')
     } catch (err) {
-      alert(err.message)
+      toast(err.message, 'error')
     }
   }
 

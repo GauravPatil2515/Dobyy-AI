@@ -3,7 +3,7 @@ import * as THREE from 'three'
 import { expandSett, weaveMatrix, getFiberCanvas } from '../utils/weaveUtils.js'
 import { h2r, blend, toRgba } from '../utils/colorUtils.js'
 
-function buildFabricTexture(state) {
+export function buildFabricTexture(state) {
   const threads = expandSett(state.sett)
   if (!threads.length) return null
   const L     = threads.length

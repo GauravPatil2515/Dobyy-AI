@@ -22,7 +22,38 @@ function getContextChips(state) {
   return [...settChips.slice(0,2), ...weaveChips.slice(0,1), ...base.slice(0,2), ...presets.slice(0,3)].slice(0, 9)
 }
 
-export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitExceeded, remainingCalls, isPro, dailyLimit }) {
+// Allowlist-based sanitizer for AI messages that embed HTML (e.g. analysis
+// swatch previews). Strips any tag/attribute not in the allowlist and drops
+// scripts, event handlers, and URLs to prevent injection.
+const ALLOWED_TAGS = new Set(['SPAN', 'BR', 'STRONG', 'B', 'EM', 'DIV', 'P'])
+function sanitizeHtml(html) {
+  if (!html.includes('<')) return html
+  const tpl = document.createElement('template')
+  tpl.innerHTML = html
+  const walk = (node) => {
+    const children = Array.from(node.childNodes)
+    for (const child of children) {
+      if (child.nodeType === Node.ELEMENT_NODE) {
+        if (!ALLOWED_TAGS.has(child.tagName)) {
+          child.replaceWith(...child.childNodes)
+          continue
+        }
+        for (const attr of Array.from(child.attributes)) {
+          const name = attr.name.toLowerCase()
+          const val = attr.value.toLowerCase()
+          if (name.startsWith('on') || /^(href|src|xlink:href|style)$/.test(name) || val.includes('javascript:') || val.includes('data:')) {
+            child.removeAttribute(attr.name)
+          }
+        }
+        walk(child)
+      }
+    }
+  }
+  walk(tpl.content)
+  return tpl.innerHTML
+}
+
+export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitExceeded, remainingCalls, isPro, dailyLimit, onImageModalOpen }) {
   const { isAuthenticated } = useAuth()
   const { canMakeApiCall, incrementApiCall } = useSubscription()
   const [input,  setInput]  = useState('')
@@ -38,6 +69,23 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
   const [serverLimit, setServerLimit] = useState(null)
   const msgsRef    = useRef(null)
   const fileInputRef = useRef(null)
+  const [dragOver, setDragOver] = useState(false)
+
+  const openImageModal = (file, dataUrl) => {
+    setMsgs(m => [...m, { role:'user', text: '📷 Analyzing fabric…', image: dataUrl }])
+    onImageModalOpen?.(file, dataUrl)
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    setDragOver(false)
+    if (loading) return
+    const file = e.dataTransfer?.files?.[0]
+    if (!file || !file.type.startsWith('image/')) return
+    const reader = new FileReader()
+    reader.onload = () => openImageModal(file, reader.result)
+    reader.readAsDataURL(file)
+  }
 
   useEffect(() => {
     const onLangChange = (e) => setLangState(e.detail)
@@ -46,8 +94,13 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
   }, [])
 
   useEffect(() => {
-    if (msgsRef.current)
-      msgsRef.current.scrollTop = msgsRef.current.scrollHeight
+    const el = msgsRef.current
+    if (!el) return
+    // rAF ensures layout is measured after the DOM update before scrolling.
+    const raf = requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight
+    })
+    return () => cancelAnimationFrame(raf)
   }, [msgs])
 
   const send = async (text) => {
@@ -91,47 +144,8 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0]
     if (!file || loading) return
-
     const reader = new FileReader()
-    reader.onload = async (event) => {
-      try {
-        const dataUrl = event.target?.result
-        setMsgs(m => [...m, { role:'user', text: '📷 Analyzing fabric…', image: dataUrl }])
-        setMsgs(m => [...m, { role:'ai', text:'...', isTyping: true }])
-
-        const base64 = await fileToBase64(file)
-        const result = await analyzeImageWithGroq(base64)
-
-        if (result.sett?.length > 0) {
-          // FIX #10: dispatch is now properly received as a prop from App.jsx
-          dispatch({
-            type: 'APPLY',
-            newState: {
-              ...state,
-              sett: result.sett,
-              weave: result.weave || state.weave,
-              activePreset: -1,
-            }
-          })
-        }
-
-        const analysisMsg = buildAnalysisMessage(
-          result.sett, result.weave, result.confidence, result.description
-        )
-
-        setMsgs(m => {
-          const filtered = m.filter(msg => !msg.isTyping)
-          return [...filtered, { role:'ai', text: analysisMsg }]
-        })
-        setIntent('image analysis')
-      } catch (err) {
-        console.error('[ChatPanel] Image upload error:', err)
-        setMsgs(m => {
-          const filtered = m.filter(msg => !msg.isTyping)
-          return [...filtered, { role:'ai', text: t('chat.imageError') }]
-        })
-      }
-    }
+    reader.onload = () => openImageModal(file, reader.result)
     reader.readAsDataURL(file)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
@@ -203,19 +217,34 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
 
       {intent && <div className="intent-chip">↳ {intent}</div>}
 
-      <div className="chat-msgs" ref={msgsRef}>
+      <div
+        className={`chat-msgs${dragOver ? ' drag-over' : ''}`}
+        ref={msgsRef}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+        onDragLeave={(e) => { if (e.currentTarget === e.target) setDragOver(false) }}
+        onDrop={handleDrop}
+      >
+        {dragOver && (
+          <div className="chat-drop-overlay">
+            <div className="chat-drop-inner">📷 Drop image to design</div>
+          </div>
+        )}
         {msgs.map((m, i) => (
           <div key={i} className={`msg ${m.role}`}>
             <div className={`bubble${m.isTyping ? ' typing' : ''}`}>
               {m.isTyping ? (
                 <span className="dots"><span/><span/><span/></span>
               ) : (
-                <>
+                 <>
                   {m.image && (
                     <img src={m.image} alt="uploaded fabric"
                       style={{maxWidth:'100%', maxHeight:160, borderRadius:6, marginBottom:6, objectFit:'cover'}}/>
                   )}
-                  {m.text}
+                  {m.text.includes('<') ? (
+                    <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(m.text) }} />
+                  ) : (
+                    m.text
+                  )}
                 </>
               )}
             </div>
