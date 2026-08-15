@@ -166,21 +166,12 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
             <>
               Powered by {t('chat.model')}
               {!isPro && (
-                <span style={{
-                  marginLeft:8, padding:'2px 8px',
-                  background: displayRemaining <= 1 ? '#fee2e2' : '#fef3c7',
-                  color: displayRemaining <= 1 ? '#dc2626' : '#92400e',
-                  borderRadius:4, fontSize:'0.75rem', fontWeight:500
-                }}>
+                <span className={`chat-quota-badge${displayRemaining <= 1 ? ' danger' : ' warning'}`}>
                   {displayRemaining} {t('chat.remaining')}
                 </span>
               )}
               {isPro && (
-                <span style={{
-                  marginLeft:8, padding:'2px 8px',
-                  background:'#d1fae5', color:'#065f46',
-                  borderRadius:4, fontSize:'0.75rem', fontWeight:500
-                }}>PRO</span>
+                <span className="chat-quota-badge chat-quota-pro">PRO</span>
               )}
             </>
           )}
@@ -237,8 +228,7 @@ export default function ChatPanel({ state, dispatch, onPrompt, loading, onLimitE
               ) : (
                  <>
                   {m.image && (
-                    <img src={m.image} alt="uploaded fabric"
-                      style={{maxWidth:'100%', maxHeight:160, borderRadius:6, marginBottom:6, objectFit:'cover'}}/>
+                    <img src={m.image} alt="uploaded fabric" className="chat-msg-image"/>
                   )}
                   {m.text.includes('<') ? (
                     <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(m.text) }} />

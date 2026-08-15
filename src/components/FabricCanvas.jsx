@@ -310,14 +310,10 @@ export default function FabricCanvas({ state, dispatch }) {
               <CompareCanvas snapshot={{ sett: state.sett, weave: state.weave, ts: state.ts, reps: state.reps }} label="B · current"/>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, maxWidth: '100%', maxHeight: '100%' }}>
+            <div className="canvas-center">
               <canvas ref={canvasRef} className="fabric-canvas"/>
               {/* Pantone swatch row — hover any swatch to see nearest Pantone TCX */}
-              <div style={{
-                display:'flex', gap:6, justifyContent:'center',
-                padding:'6px 12px', flexWrap:'wrap', background:'var(--surf)',
-                borderRadius:'var(--r-md)', border:'1px solid var(--bdr)', maxWidth: '100%'
-              }}>
+              <div className="pantone-row">
                 {state.sett.map((s, i) => (
                   <PantoneTooltip key={i} hex={s.c} />
                 ))}

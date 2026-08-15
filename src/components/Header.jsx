@@ -4,7 +4,7 @@ import { useSubscription } from '../contexts/SubscriptionContext.jsx'
 import { t, getLang, setLang, SUPPORTED_LANGS } from '../utils/i18n.js'
 import { WEAVE_LABELS } from '../constants.js'
 
-export default function Header({ state, dispatch, undo, redo, canUndo, canRedo, onMenuToggle, onDesignDropOpen }) {
+export default function Header({ state, dispatch, undo, redo, canUndo, canRedo, onMenuToggle, onDesignDropOpen, onAiToolsOpen }) {
   const { user, logout } = useAuth()
   const { isPro } = useSubscription()
   const [showProfile, setShowProfile] = useState(false)
@@ -93,7 +93,10 @@ export default function Header({ state, dispatch, undo, redo, canUndo, canRedo, 
 
       <div className="header-right">
         <span className="badge">{total}T · {state.sett.length}c · {wl[state.weave]}</span>
-
+        <button className="btn-gradient btn-sm" onClick={() => onAiToolsOpen && onAiToolsOpen('colors')} title="AI Colour Suggestion & Design Details">
+          <span>🎨</span>
+          <span className="btn-text">AI Palette &amp; Details</span>
+        </button>
         <button className="btn-variations" onClick={onDesignDropOpen} title="Generate Variations (Design Drop)">
           <span>✨</span>
           <span className="btn-text">Variations</span>

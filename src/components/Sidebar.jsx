@@ -8,12 +8,30 @@ import { WEAVES } from '../constants.js'
 export default function Sidebar({
   state, dispatch, className='',
   gallery, galleryActiveId, onSave, onLoad, onRemove, onRename,
-  galleryLoading, canSaveMore, maxDesigns
+  galleryLoading, canSaveMore, maxDesigns, onAiToolsOpen
 }) {
   const totalThreads = state.sett.reduce((a,s) => a+s.n, 0)
 
   return (
     <aside className={`sidebar ${className}`}>
+      <div className="section-accent">
+        <div className="section-title">✨ AI Design Intelligence</div>
+        <div className="ai-btn-group">
+          <button
+            className="btn-gradient w-full"
+            onClick={() => onAiToolsOpen && onAiToolsOpen('colors')}
+          >
+            <span>🎨</span> AI Colour Suggestion
+          </button>
+          <button
+            className="btn-secondary w-full"
+            onClick={() => onAiToolsOpen && onAiToolsOpen('details')}
+          >
+            <span>✨</span> Generate Design Details
+          </button>
+        </div>
+      </div>
+
       <SettBuilder sett={state.sett} dispatch={dispatch} totalThreads={totalThreads}/>
       <Gallery
         gallery={gallery}
@@ -37,7 +55,7 @@ export default function Sidebar({
               onClick={() => dispatch({type:'SET_PRESET', idx:i})}>
               <div className="preset-swatch">
                 {p.sett.slice(0,6).map((s,j) => (
-                  <div key={j} style={{flex:s.n, background:s.c, minWidth:2}}/>
+                  <div key={j} className="streak-segment" style={{flex:s.n, background:s.c, minWidth:2}}/>
                 ))}
               </div>
               <div>
@@ -53,7 +71,7 @@ export default function Sidebar({
         <div className="section-title">{t('sidebar.weave')} &amp; Scale</div>
         <select
           className="ctrl-select"
-          value={state.weave}
+          value={state.weave || 'twill22'}
           onChange={e => dispatch({type:'SET_WEAVE', weave:e.target.value})}>
           {WEAVES.map(w => (
             <option key={w.v} value={w.v}>{w.l}</option>
@@ -62,16 +80,16 @@ export default function Sidebar({
         <div className="ctrl-row">
           <span className="ctrl-label">{t('sidebar.ts')}</span>
           <input type="range" className="ctrl-range"
-            min={4} max={22} value={state.ts}
+            min={4} max={22} value={state.ts ?? 8}
             onChange={e => dispatch({type:'SET_TS', ts:+e.target.value})}/>
-          <span className="ctrl-val">{state.ts}px</span>
+          <span className="ctrl-val">{state.ts ?? 8}px</span>
         </div>
         <div className="ctrl-row">
           <span className="ctrl-label">{t('sidebar.reps')}</span>
           <input type="range" className="ctrl-range"
-            min={1} max={12} value={state.reps}
+            min={1} max={12} value={state.reps ?? 3}
             onChange={e => dispatch({type:'SET_REPS', reps:+e.target.value})}/>
-          <span className="ctrl-val">{state.reps}×</span>
+          <span className="ctrl-val">{state.reps ?? 3}×</span>
         </div>
       </div>
     </aside>

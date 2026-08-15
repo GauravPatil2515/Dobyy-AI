@@ -74,72 +74,61 @@ export default function DesignDrop({ state, dispatch, onClose }) {
 
   return (
     <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="modal-box" style={{ maxWidth: 560, width: '90vw' }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
-          <h3 style={{ margin:0, fontSize:'1rem', fontWeight:600 }}>✨ Design Variations</h3>
-          <button onClick={onClose} className="btn-ghost" style={{ padding:'4px 8px', fontSize:'1.2rem', lineHeight:1 }} aria-label="Close">×</button>
+      <div className="modal-surface" style={{ maxWidth: 560, width: '90vw' }}>
+        <div className="modal-header">
+          <h3 className="modal-title">✨ Design Variations</h3>
+          <button className="modal-close" onClick={onClose} aria-label="Close">&times;</button>
         </div>
 
         {loading && (
-          <div style={{ textAlign:'center', padding:'32px 0', color:'var(--fg2)' }}>
-            <div className="app-spinner" style={{ margin:'0 auto 12px' }}/>
+          <div className="state-loading">
+            <div className="app-spinner" style={{ margin: '0 auto 12px' }} />
             <p>Generating variations…</p>
           </div>
         )}
 
         {error && (
-          <div style={{ padding:16, background:'#fee2e2', borderRadius:8, color:'#dc2626', marginBottom:12 }}>
+          <div className="error-banner">
             {error}
-            <button onClick={generateVariations} style={{ marginLeft:12, textDecoration:'underline', background:'none', border:'none', cursor:'pointer', color:'#dc2626' }}>Retry</button>
+            <button onClick={generateVariations} className="btn-ghost" style={{ marginLeft: 12, padding: '2px 6px', fontSize: '0.85rem' }}>Retry</button>
           </div>
         )}
 
         {!loading && !error && variations.length === 0 && (
-          <div style={{ textAlign:'center', padding:'24px 0', color:'var(--fg2)' }}>
-            No variations could be generated. <button onClick={generateVariations} style={{ textDecoration:'underline', background:'none', border:'none', cursor:'pointer' }}>Try again</button>
+          <div className="state-empty">
+            No variations could be generated.{' '}
+            <button onClick={generateVariations} className="btn-ghost">Try again</button>
           </div>
         )}
 
         {!loading && variations.length > 0 && (
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(150px,1fr))', gap:12 }}>
+          <div className="variation-grid">
             {variations.map((v, i) => (
               <button
                 key={i}
                 onClick={() => applyVariation(v)}
-                style={{
-                  background:'var(--surface)',
-                  border:'1px solid var(--border)',
-                  borderRadius:10,
-                  padding:12,
-                  cursor:'pointer',
-                  textAlign:'left',
-                  transition:'border-color 0.15s, box-shadow 0.15s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.12)' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
+                className="thumb-card"
               >
                 {/* Stripe preview */}
-                <div style={{ display:'flex', height:32, borderRadius:6, overflow:'hidden', marginBottom:8 }}>
+                <div className="streak-preview">
                   {v.sett.map((s, j) => (
                     <div
                       key={j}
-                      style={{
-                        flex: s.n,
-                        background: s.c,
-                      }}
+                      className="streak-segment"
+                      style={{ flex: s.n, background: s.c }}
                     />
                   ))}
                 </div>
-                <div style={{ fontSize:'0.7rem', color:'var(--fg2)', lineHeight:1.3 }}>{v.label}</div>
-                {v.reply && <div style={{ fontSize:'0.65rem', color:'var(--fg3)', marginTop:4, lineHeight:1.3 }}>{v.reply}</div>}
+                <div className="thumb-label">{v.label}</div>
+                {v.reply && <div className="swatch-hex">{v.reply}</div>}
               </button>
             ))}
           </div>
         )}
 
-        <div style={{ marginTop:20, display:'flex', gap:8, justifyContent:'flex-end' }}>
-          <button onClick={generateVariations} disabled={loading} className="btn-secondary" style={{ fontSize:'0.8rem' }}>↺ Regenerate</button>
-          <button onClick={onClose} className="btn-secondary" style={{ fontSize:'0.8rem' }}>Cancel</button>
+        <div className="modal-footer">
+          <button onClick={generateVariations} disabled={loading} className="btn-secondary">↺ Regenerate</button>
+          <button onClick={onClose} className="btn-secondary">Cancel</button>
         </div>
       </div>
     </div>

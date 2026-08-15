@@ -1,13 +1,10 @@
 import { initializeApp } from 'firebase/app'
-import { getAnalytics } from 'firebase/analytics'
+import { getAnalytics, isSupported } from 'firebase/analytics'
 import { getAuth, GoogleAuthProvider } from 'firebase/auth'
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore'
 
 // All Firebase config is read from Vite env vars (.env.local, gitignored)
 // or Vercel environment variables in production. Nothing is hardcoded.
-//
-// Required vars: VITE_FIREBASE_API_KEY, VITE_FIREBASE_AUTH_DOMAIN,
-// VITE_FIREBASE_PROJECT_ID, VITE_FIREBASE_APP_ID, etc. (see .env.example)
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -22,19 +19,24 @@ const firebaseConfig = {
 
 const hasValidConfig =
   !!firebaseConfig.apiKey &&
+  !!firebaseConfig.projectId &&
   firebaseConfig.apiKey !== 'AIzaSy...' &&
-  !firebaseConfig.apiKey.includes('your_firebase_api_key')
+  !firebaseConfig.apiKey.toLowerCase().includes('your_firebase_api_key') &&
+  !firebaseConfig.apiKey.toLowerCase().includes('fake') &&
+  firebaseConfig.projectId !== 'fake-project-id' &&
+  !firebaseConfig.appId?.toLowerCase().includes('fake')
+
 
 let app, analytics, auth, db, googleProvider
 
 if (hasValidConfig) {
   try {
     app = initializeApp(firebaseConfig)
-    try {
-      analytics = getAnalytics(app)
-    } catch (e) {
-      console.warn('[Firebase] Analytics failed to initialize:', e)
-    }
+    isSupported().then((supported) => {
+      if (supported) {
+        try { analytics = getAnalytics(app) } catch (_) {}
+      }
+    }).catch(() => {})
     auth = getAuth(app)
     db = initializeFirestore(app, {
       localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })

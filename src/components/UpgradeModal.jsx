@@ -41,10 +41,10 @@ export default function UpgradeModal({ onClose, onUpgrade }) {
           </div>
           <p className="upgrade-pro-sub">Unlock unlimited creativity</p>
           <ul className="upgrade-features">
-            <li><span className="modal-feature-icon" style={{color:'#10b981'}}>✓</span> 100 AI designs per day</li>
-            <li><span className="modal-feature-icon" style={{color:'#10b981'}}>✓</span> Save up to 200 designs</li>
-            <li><span className="modal-feature-icon" style={{color:'#10b981'}}>✓</span> WIF export for looms</li>
-            <li><span className="modal-feature-icon" style={{color:'#10b981'}}>✓</span> Priority support</li>
+            <li><span className="modal-feature-icon success">✓</span> 100 AI designs per day</li>
+            <li><span className="modal-feature-icon success">✓</span> Save up to 200 designs</li>
+            <li><span className="modal-feature-icon success">✓</span> WIF export for looms</li>
+            <li><span className="modal-feature-icon success">✓</span> Priority support</li>
           </ul>
           <div className="upgrade-pricing">
             <span className="upgrade-price">$9</span>

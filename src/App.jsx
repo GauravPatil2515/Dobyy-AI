@@ -11,6 +11,7 @@ import ChatPanel    from './components/ChatPanel.jsx'
 import LandingPage  from './components/LandingPage.jsx'
 import LoginPage    from './components/LoginPage.jsx'
 import UpgradeModal from './components/UpgradeModal.jsx'
+import AiToolsModal from './components/AiToolsModal.jsx'
 import Toaster      from './components/Toaster.jsx'
 
 const DesignDrop = lazy(() => import('./components/DesignDrop.jsx'))
@@ -20,6 +21,13 @@ export default function App() {
   const { isAuthenticated, loading: authLoading } = useAuth()
   const { canMakeApiCall, getRemainingCalls, isPro, subscription } = useSubscription()
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [showAiTools, setShowAiTools] = useState(false)
+  const [aiToolsTab, setAiToolsTab] = useState('colors')
+
+  const handleOpenAiTools = useCallback((tab = 'colors') => {
+    setAiToolsTab(tab)
+    setShowAiTools(true)
+  }, [])
   // FIX #2: state to show/hide DesignDrop modal
   const [showDesignDrop, setShowDesignDrop] = useState(false)
   // Image-to-Design wizard modal: holds the chosen file, preview URL, and base64
@@ -127,7 +135,7 @@ export default function App() {
       <div className="app-loading">
         <div className="app-loading-inner">
           <div className="app-spinner" />
-          <p style={{ color: 'var(--fg2)' }}>Loading...</p>
+          <p>Loading...</p>
         </div>
       </div>
     )
@@ -148,7 +156,8 @@ export default function App() {
           canUndo={canUndo} canRedo={canRedo}
           onMenuToggle={() => setSidebarOpen(o => !o)}
           // FIX #2: wire DesignDrop open handler to Header
-          onDesignDropOpen={() => setShowDesignDrop(true)}/>
+          onDesignDropOpen={() => setShowDesignDrop(true)}
+          onAiToolsOpen={handleOpenAiTools}/>
 
         <div
           className={`sidebar-backdrop${sidebarOpen ? ' visible' : ''}`}
@@ -170,7 +179,8 @@ export default function App() {
               onRename={rename}
               galleryLoading={galleryLoading}
               canSaveMore={canSaveMore}
-              maxDesigns={subscription.maxSavedDesigns}/>
+              maxDesigns={subscription.maxSavedDesigns}
+              onAiToolsOpen={handleOpenAiTools}/>
             <div
               className="resize-handle resize-handle-right"
               onMouseDown={() => {
@@ -204,6 +214,14 @@ export default function App() {
           </div>
         </div>
       </div>
+
+      {/* AI Tools Modal (AI Colour Suggestion + Design Name & Details Generator) */}
+      <AiToolsModal
+        isOpen={showAiTools}
+        initialTab={aiToolsTab}
+        onClose={() => setShowAiTools(false)}
+        state={state}
+        dispatch={dispatch}/>
 
       {/* FIX #2: render DesignDrop modal */}
       {showDesignDrop && (

@@ -43,11 +43,11 @@ export default function Gallery({
 
   return (
     <div className="section">
-      <div className="section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="section-title gallery-header-title">
         <span>My Designs</span>
-        {galleryLoading && <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Loading...</span>}
+        {galleryLoading && <span className="gallery-status">Loading...</span>}
         {!galleryLoading && (
-          <span style={{ fontSize: '0.75rem', color: gallery.length >= maxDesigns ? '#dc2626' : '#9ca3af' }}>
+          <span className={`gallery-status${gallery.length >= maxDesigns ? ' limit' : ''}`}>
             {gallery.length}/{maxDesigns}
           </span>
         )}
@@ -62,19 +62,18 @@ export default function Gallery({
           disabled={!canSaveMore || galleryLoading}
           onChange={e => setSaveName(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleSave()}/>
-        <button 
-          className="reg-btn" 
-          onClick={handleSave} 
+        <button
+          className="reg-btn"
+          onClick={handleSave}
           disabled={!canSaveMore || galleryLoading}
           title={canSaveMore ? "Save design" : "Design limit reached"}
-          style={{ opacity: canSaveMore ? 1 : 0.5 }}
         >
           💾
         </button>
       </div>
 
       {gallery.length === 0 && (
-        <div style={{fontSize:10, color:'var(--ft)', padding:'6px 2px'}}>
+        <div className="gallery-empty">
           No saved designs yet. Click 💾 to save the current one.
         </div>
       )}

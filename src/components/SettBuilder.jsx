@@ -48,8 +48,8 @@ function SortableStripe({ stripe, idx, total, dispatch }) {
       </div>
 
       {/* Color swatch */}
-      <div className="stripe-color" style={{background: stripe.c}}>
-        <input type="color" value={stripe.c}
+      <div className="stripe-color" style={{background: stripe.c || '#000000'}}>
+        <input type="color" value={stripe.c || '#000000'}
           onChange={e => dispatch({
             type: 'UPDATE_STRIPE', idx, patch: { c: e.target.value }
           })}/>
@@ -59,13 +59,13 @@ function SortableStripe({ stripe, idx, total, dispatch }) {
       <input
         type="number"
         className="stripe-n"
-        value={stripe.n}
+        value={stripe.n ?? 1}
         min={1} max={32}
         onChange={e => dispatch({
           type: 'UPDATE_STRIPE', idx,
           patch: { n: Math.max(1, Math.min(32, +e.target.value)) }
         })}/>
-      <span className="stripe-label">{stripe.n}t</span>
+      <span className="stripe-label">{stripe.n ?? 1}t</span>
 
       {/* Nearest Pantone TCX match (live) */}
       {(() => {
@@ -73,11 +73,10 @@ function SortableStripe({ stripe, idx, total, dispatch }) {
         if (!p) return null
         return (
           <span
-            className="stripe-pantone"
-            title={`${p.name} · ${p.code} · Δ${p.delta}`}
-            style={{ marginLeft: 6, fontSize: '0.62rem', color: 'var(--ft)' }}
+          className="stripe-pantone"
+          title={`${p.name} · ${p.code} · Δ${p.delta}`}
           >
-            {p.code}
+          {p.code}
           </span>
         )
       })()}
