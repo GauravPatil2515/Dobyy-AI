@@ -1,8 +1,9 @@
+import { useState, useEffect } from 'react'
 import SettBuilder from './SettBuilder.jsx'
 import RegistrySearch from './RegistrySearch.jsx'
 import Gallery from './Gallery.jsx'
 import { PRESETS } from '../data/presets.js'
-import { t } from '../utils/i18n.js'
+import { t, getLang } from '../utils/i18n.js'
 import { WEAVES } from '../constants.js'
 
 export default function Sidebar({
@@ -11,6 +12,12 @@ export default function Sidebar({
   galleryLoading, canSaveMore, maxDesigns, onAiToolsOpen
 }) {
   const totalThreads = state.sett.reduce((a,s) => a+s.n, 0)
+  const [, setLangTick] = useState(0)
+  useEffect(() => {
+    const h = () => setLangTick(n => n + 1)
+    window.addEventListener('dobby-lang-change', h)
+    return () => window.removeEventListener('dobby-lang-change', h)
+  }, [])
 
   return (
     <aside className={`sidebar ${className}`}>
@@ -21,13 +28,13 @@ export default function Sidebar({
             className="btn-gradient w-full"
             onClick={() => onAiToolsOpen && onAiToolsOpen('colors')}
           >
-            <span>🎨</span> AI Colour Suggestion
+            {t('sidebar.aiColours')}
           </button>
           <button
             className="btn-secondary w-full"
             onClick={() => onAiToolsOpen && onAiToolsOpen('details')}
           >
-            <span>✨</span> Generate Design Details
+            {t('sidebar.aiDetails')}
           </button>
         </div>
       </div>

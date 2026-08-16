@@ -459,143 +459,181 @@ function buildShirt() {
 function buildPants() {
   const group = new THREE.Group()
 
-  // Waistband - realistic oval waist with belt loops
-  const waistGeo = new THREE.CylinderGeometry(0.42, 0.45, 0.12, 64, 16, true)
-  const waist = new THREE.Mesh(waistGeo)
-  waist.position.y = 0.98
-  waist.scale.set(1, 1, 0.75) // Oval human waist
-  group.add(waist)
+  // ── Waistband – elliptical cross-section like real trousers ──
+  const wbGeo = new THREE.CylinderGeometry(0.44, 0.46, 0.10, 64, 8, true)
+  const wp = wbGeo.attributes.position
+  for (let i = 0; i < wp.count; i++) {
+    // Flatten front-to-back to get oval waist
+    wp.setZ(i, wp.getZ(i) * 0.76)
+  }
+  wbGeo.computeVertexNormals()
+  const waistband = new THREE.Mesh(wbGeo)
+  waistband.position.y = 1.01
+  group.add(waistband)
 
-  // Belt loops (5 around waist)
-  for (let i = 0; i < 5; i++) {
-    const angle = (i / 5) * Math.PI * 2
-    const loopGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.08, 8)
+  // Belt loops (6 evenly spaced)
+  for (let i = 0; i < 6; i++) {
+    const angle = (i / 6) * Math.PI * 2
+    const loopGeo = new THREE.BoxGeometry(0.018, 0.09, 0.012)
     const loop = new THREE.Mesh(loopGeo)
-    loop.position.set(Math.cos(angle) * 0.44, 0.96, Math.sin(angle) * 0.33)
+    loop.position.set(
+      Math.cos(angle) * 0.45,
+      1.01,
+      Math.sin(angle) * 0.34
+    )
+    loop.rotation.y = -angle
     group.add(loop)
   }
 
-  // Fly / Zipper area (front center)
-  const flyGeo = new THREE.PlaneGeometry(0.04, 0.35, 4, 8)
+  // Fly / Zipper placket
+  const flyGeo = new THREE.BoxGeometry(0.038, 0.30, 0.01)
   const fly = new THREE.Mesh(flyGeo)
-  fly.position.set(0, 0.82, 0.47)
+  fly.position.set(0.02, 0.84, 0.455)
   group.add(fly)
+  // Zipper pull
+  const pullGeo = new THREE.CylinderGeometry(0.007, 0.007, 0.025, 8)
+  const pull = new THREE.Mesh(pullGeo)
+  pull.position.set(0.02, 0.86, 0.46)
+  pull.rotation.z = Math.PI / 2
+  group.add(pull)
 
-  // Hip / Seat area - shaped for anatomy
-  const hipGeo = new THREE.CylinderGeometry(0.45, 0.52, 0.5, 64, 24, true)
+  // ── Hip/Seat – anatomically shaped ──
+  const hipGeo = new THREE.CylinderGeometry(0.44, 0.50, 0.55, 64, 24, true)
   const hp = hipGeo.attributes.position
   const hu = hipGeo.attributes.uv
   for (let i = 0; i < hp.count; i++) {
     const x = hp.getX(i), y = hp.getY(i), z = hp.getZ(i)
     const ang = Math.atan2(z, x)
-    
-    // Front fly opening
-    let flyDepth = 0
-    if (ang > Math.PI * 0.4 && ang < Math.PI * 0.6 && y > -0.1) {
-      flyDepth = 0.025
-    }
-    // Seat fullness (back)
-    const seatPad = (ang < -Math.PI * 0.5 || ang > Math.PI * 0.5) && y < 0.1 ? 0.02 : 0
-    // Hip flare
-    const hipFlare = Math.abs(Math.sin(ang)) * 0.015
-    
-    const zOffset = flyDepth + seatPad + hipFlare
-    hp.setZ(i, z + zOffset)
-    hp.setX(i, x + hipFlare * Math.cos(ang))
-    if (hu) hu.setXY(i, (ang + Math.PI) / (2 * Math.PI) * 3, (y + 0.25) / 0.5 * 1.5)
+    const hn = (y + 0.275) / 0.55
+    // Oval: flatten front-back
+    const scaleZ = 0.76
+    // Seat fullness at rear
+    const isBack = (ang < -Math.PI * 0.3 || ang > Math.PI * 0.3)
+    const seat = isBack ? (1 - hn) * 0.04 * Math.max(0, (1 - Math.abs(ang) / Math.PI)) : 0
+    // Crotch curve (front)
+    const crotch = (ang > Math.PI * 0.35 && ang < Math.PI * 0.65 && hn < 0.3) ? (0.3 - hn) * 0.06 : 0
+    // Hip flare (sides)
+    const flare = Math.abs(Math.sin(ang)) * 0.025 * (1 - hn)
+    hp.setZ(i, z * scaleZ + seat)
+    hp.setX(i, x + flare * Math.cos(ang) + crotch * Math.cos(ang))
+    if (hu) hu.setXY(i, (ang + Math.PI) / (2 * Math.PI) * 3, hn * 2)
   }
   hipGeo.computeVertexNormals()
   const hips = new THREE.Mesh(hipGeo)
-  hips.position.y = 0.6
-  hips.scale.set(1, 1, 0.75)
+  hips.position.y = 0.61
   group.add(hips)
 
-  // Back pockets
-  const pocketGeo = new THREE.PlaneGeometry(0.12, 0.1, 2, 2)
-  const leftPocket = new THREE.Mesh(pocketGeo)
-  leftPocket.position.set(-0.22, 0.55, 0.4)
-  leftPocket.rotation.y = Math.PI * 0.15
-  group.add(leftPocket)
-  const rightPocket = new THREE.Mesh(pocketGeo)
-  rightPocket.position.set(0.22, 0.55, 0.4)
-  rightPocket.rotation.y = -Math.PI * 0.15
-  group.add(rightPocket)
+  // Back pockets with stitching detail
+  for (let side of [-1, 1]) {
+    const pGeo = new THREE.PlaneGeometry(0.13, 0.11)
+    const pocket = new THREE.Mesh(pGeo)
+    pocket.position.set(side * 0.22, 0.62, -0.40)
+    pocket.rotation.y = Math.PI + side * 0.18
+    pocket.rotation.x = -0.1
+    group.add(pocket)
+    // Pocket stitch border
+    const stitch = new THREE.EdgesGeometry(pGeo)
+    const stitchLine = new THREE.LineSegments(stitch)
+    stitchLine.position.copy(pocket.position)
+    stitchLine.rotation.copy(pocket.rotation)
+    group.add(stitchLine)
+  }
 
-  // Left & Right Legs with realistic anatomy
-  const makeLeg = (offsetX, angleZ, isLeft) => {
-    const group = new THREE.Group()
-    
-    // Thigh (upper leg) - wider at hip, tapering to knee
-    const thighGeo = new THREE.CylinderGeometry(0.18, 0.13, 0.75, 48, 24, true)
+  // Front slash pockets
+  for (let side of [-1, 1]) {
+    const fpGeo = new THREE.PlaneGeometry(0.04, 0.15)
+    const fp = new THREE.Mesh(fpGeo)
+    fp.position.set(side * 0.38, 0.76, 0.31)
+    fp.rotation.y = side * -0.4
+    fp.rotation.x = 0.2
+    group.add(fp)
+  }
+
+  // ── Left & Right Legs with realistic cloth anatomy ──
+  const makeLeg = (offsetX, tiltZ, isLeft) => {
+    const lg = new THREE.Group()
+
+    // Upper thigh – slightly oval with inner-thigh curvature
+    const thighGeo = new THREE.CylinderGeometry(0.195, 0.145, 0.72, 48, 28, true)
     const tp = thighGeo.attributes.position
     const tu = thighGeo.attributes.uv
     for (let i = 0; i < tp.count; i++) {
       const x = tp.getX(i), y = tp.getY(i), z = tp.getZ(i)
       const ang = Math.atan2(z, x)
-      // Inner thigh curve (more volume on inner side)
-      const innerThigh = (isLeft ? -1 : 1) * Math.cos(ang) * 0.01
-      // Front/back shaping
-      const frontShape = Math.sin(ang) * 0.008
-      tp.setX(i, x + innerThigh + frontShape)
-      tp.setZ(i, z + frontShape)
-      if (tu) tu.setXY(i, (ang + Math.PI) / (2 * Math.PI) * 2, (y + 0.375) / 0.75 * 3)
+      const hn = (y + 0.36) / 0.72
+      // Inner thigh volume
+      const inner = (isLeft ? -1 : 1) * Math.cos(ang) * 0.012 * (1 - hn)
+      // Front/back shaping (inseam)
+      const inseam = Math.sin(ang) * 0.01 * hn
+      // Slight front crease
+      const crease = (Math.abs(ang - Math.PI * 0.5) < 0.12) ? 0.006 : 0
+      // Cloth micro-wrinkles
+      const micro = Math.sin(y * 10 + x * 7) * 0.003
+      tp.setX(i, x + inner + micro)
+      tp.setZ(i, z * 0.80 + inseam + crease + micro)
+      if (tu) tu.setXY(i, (ang + Math.PI) / (2 * Math.PI) * 2, hn * 3)
     }
     thighGeo.computeVertexNormals()
     const thigh = new THREE.Mesh(thighGeo)
-    thigh.position.set(offsetX, 0.2, 0)
-    group.add(thigh)
+    thigh.position.set(offsetX, 0.14, 0)
+    lg.add(thigh)
 
-    // Knee area - slight bulge
-    const kneeGeo = new THREE.SphereGeometry(0.14, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.5)
+    // Knee area – subtle forward bulge
+    const kneeGeo = new THREE.SphereGeometry(0.15, 32, 24, 0, Math.PI * 2, 0, Math.PI * 0.52)
+    const kp = kneeGeo.attributes.position
+    for (let i = 0; i < kp.count; i++) {
+      kp.setX(i, kp.getX(i) * 0.88)  // slightly narrow
+      kp.setZ(i, kp.getZ(i) * 1.0)
+    }
+    kneeGeo.computeVertexNormals()
     const knee = new THREE.Mesh(kneeGeo)
-    knee.position.set(offsetX, -0.15, isLeft ? -0.02 : 0.02)
-    knee.scale.set(1, 0.7, 1.1)
-    group.add(knee)
+    knee.position.set(offsetX, -0.22, isLeft ? 0.015 : -0.015)
+    knee.scale.set(1, 0.72, 1.06)
+    lg.add(knee)
 
-    // Calf / Lower leg - tapering to ankle
-    const calfGeo = new THREE.CylinderGeometry(0.13, 0.085, 0.8, 48, 24, true)
+    // Calf – organic taper to ankle
+    const calfGeo = new THREE.CylinderGeometry(0.145, 0.088, 0.80, 48, 28, true)
     const cp = calfGeo.attributes.position
     const cu = calfGeo.attributes.uv
     for (let i = 0; i < cp.count; i++) {
       const x = cp.getX(i), y = cp.getY(i), z = cp.getZ(i)
       const ang = Math.atan2(z, x)
-      // Calf muscle (back)
-      const calfMuscle = Math.sin(ang + Math.PI) * Math.max(0, (0.3 - y) / 0.3) * 0.02
-      // Shin (front) - flatter
-      const shinFlat = Math.sin(ang) * Math.max(0, (y + 0.4) / 0.4) * -0.005
-      cp.setX(i, x + calfMuscle * Math.cos(ang) + shinFlat)
-      cp.setZ(i, z + calfMuscle * Math.sin(ang) + shinFlat)
-      // Subtle cloth wrinkles
-      const wrinkles = Math.sin(y * 12 + x * 6) * 0.003
-      cp.setX(i, cp.getX(i) + wrinkles)
-      cp.setZ(i, cp.getZ(i) + wrinkles)
-      if (cu) cu.setXY(i, (ang + Math.PI) / (2 * Math.PI) * 2, (y + 0.4) / 0.8 * 3)
+      const hn = (y + 0.40) / 0.80
+      // Calf muscle (rear)
+      const calf = Math.sin(ang + Math.PI) * Math.max(0, (0.55 - y) / 0.55) * 0.022 * (1 - hn * 0.5)
+      // Shinbone (front flatter)
+      const shin = Math.sin(ang) * Math.max(0, hn) * -0.008
+      // Cloth wrinkle stack at ankle
+      const wrinkle = Math.sin(y * 14 + x * 8) * (hn < 0.2 ? 0.005 : 0.002)
+      cp.setX(i, x + calf * Math.cos(ang) + shin + wrinkle)
+      cp.setZ(i, (z * 0.82) + calf * Math.sin(ang) + wrinkle)
+      if (cu) cu.setXY(i, (ang + Math.PI) / (2 * Math.PI) * 2, hn * 3)
     }
     calfGeo.computeVertexNormals()
     const calf = new THREE.Mesh(calfGeo)
-    calf.position.set(offsetX, -0.55, 0)
-    group.add(calf)
+    calf.position.set(offsetX, -0.61, 0)
+    lg.add(calf)
 
-    // Ankle cuff
-    const cuffGeo = new THREE.TorusGeometry(0.09, 0.015, 12, 24)
-    cuffGeo.rotateX(Math.PI / 2)
+    // Ankle cuff – slight flare
+    const cuffGeo = new THREE.CylinderGeometry(0.092, 0.098, 0.042, 32, 4, true)
     const cuff = new THREE.Mesh(cuffGeo)
-    cuff.position.set(offsetX, -0.95, 0)
-    group.add(cuff)
+    cuff.position.set(offsetX, -1.005, 0)
+    lg.add(cuff)
 
-    // Hem detail - slight flare at bottom
-    const hemGeo = new THREE.CylinderGeometry(0.095, 0.1, 0.04, 32, 4, true)
-    const hem = new THREE.Mesh(hemGeo)
-    hem.position.set(offsetX, -0.97, 0)
-    group.add(hem)
+    // Cuff fold (turned-up hem on some trousers)
+    const foldGeo = new THREE.TorusGeometry(0.092, 0.01, 8, 32)
+    foldGeo.rotateX(Math.PI / 2)
+    const fold = new THREE.Mesh(foldGeo)
+    fold.position.set(offsetX, -0.985, 0)
+    lg.add(fold)
 
-    group.rotation.z = angleZ
-    return group
+    lg.rotation.z = tiltZ
+    return lg
   }
 
-  group.add(makeLeg(-0.22, -0.015, true))  // Left leg
-  group.add(makeLeg(0.22, 0.015, false))   // Right leg
-  group.position.y = 0.5
+  group.add(makeLeg(-0.22, -0.018, true))   // Left
+  group.add(makeLeg(0.22,  0.018, false))   // Right
+  group.position.y = 0.48
   return { mesh: group }
 }
 
