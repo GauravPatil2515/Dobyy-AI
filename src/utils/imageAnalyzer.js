@@ -117,22 +117,12 @@ export function localKMeansExtract(imageData) {
 // ════════════════════════════════════════════════════════════
 export async function analyzeImageWithGroq(base64Data, onProgress) {
   try {
-    let token = null;
-      return {
-        sett: fallback,
-        weave: 'twill22',
-        confidence: 60,
-        description: 'Local K-means color extraction (not signed in)',
-        source: 'fallback-noauth'
-      };
-    }
-
     onProgress({ status: 'analyzing' });
 
     // Use OpenRouter proxy endpoint for vision analysis
     const res = await fetch('/api/openrouter', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         endpoint: 'chat/completions',
         payload: {
