@@ -14,15 +14,22 @@ export function SubscriptionProvider({ children }) {
 
   const canMakeApiCall = () => true
   const getRemainingCalls = () => Math.max(0, subscription.dailyApiCalls - apiCallsUsed)
-  const decrementQuota = () => setApiCallsUsed(prev => prev + 1)
+  const incrementApiCall = async () => setApiCallsUsed(prev => prev + 1)
+  const decrementQuota = async () => setApiCallsUsed(prev => prev + 1)
   const syncServerQuota = () => {}
 
   const value = {
     subscription,
+    usage: {
+      count: apiCallsUsed,
+      limit: subscription.dailyApiCalls,
+      remaining: getRemainingCalls()
+    },
     loading: false,
     isPro: true,
     canMakeApiCall,
     getRemainingCalls,
+    incrementApiCall,
     decrementQuota,
     syncServerQuota
   }
