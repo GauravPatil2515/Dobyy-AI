@@ -1,5 +1,3 @@
-import { auth } from '../firebase.js'
-
 const SYSTEM_PROMPT = `
 You are Dobby, an expert AI fabric and tartan designer.
 The user describes a fabric design in natural language or provides extracted colors.

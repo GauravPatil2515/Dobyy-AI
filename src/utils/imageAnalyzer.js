@@ -117,17 +117,7 @@ export function localKMeansExtract(imageData) {
 // ════════════════════════════════════════════════════════════
 export async function analyzeImageWithGroq(base64Data, onProgress) {
   try {
-    // Get a fresh Firebase ID token so the server can authorize + rate-limit.
-    // The proxy no longer accepts anonymous requests (paid OpenRouter key).
     let token = null;
-    try {
-      const { auth } = await import('../firebase.js');
-      token = await auth.currentUser?.getIdToken();
-    } catch (_) { /* anonymous / offline → fall back below */ }
-
-    if (!token) {
-      onProgress({ error: 'no-auth', message: '⚠️ Sign in to use AI image analysis. Using local color extraction.' });
-      const fallback = await localKMeansExtract(base64Data);
       return {
         sett: fallback,
         weave: 'twill22',

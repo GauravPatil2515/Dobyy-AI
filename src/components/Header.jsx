@@ -108,36 +108,13 @@ export default function Header({ state, dispatch, undo, redo, canUndo, canRedo, 
           </svg>
         </button>
 
-        <div className="profile-wrap" data-profile-dropdown>
-          <button className="profile-btn" onClick={() => setShowProfile(o => !o)}>
-            {user?.photoURL ? (
-              <img src={user.photoURL} alt="Profile" className="profile-avatar"/>
-            ) : (
-              <div className="profile-avatar-fallback">
-                {user?.displayName?.[0]?.toUpperCase() || 'U'}
-              </div>
-            )}
-            {isPro && <span className="profile-pro-badge">PRO</span>}
-          </button>
-
-          {showProfile && (
-            <div className="profile-dropdown">
-              <div className="profile-dropdown-header">
-                <p className="profile-dropdown-name">{user?.displayName || 'Designer'}</p>
-                <p className="profile-dropdown-email">{user?.email}</p>
-              </div>
-              <button
-                className="profile-signout"
-                onClick={() => { logout(); setShowProfile(false) }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                  <polyline points="16 17 21 12 16 7"/>
-                  <line x1="21" y1="12" x2="9" y2="12"/>
-                </svg>
-                Sign Out
-              </button>
+        <div className="profile-wrap" title="Dobby Studio — Standalone Mode">
+          <div className="profile-btn" style={{ cursor: 'default' }}>
+            <div className="profile-avatar-fallback" style={{ background: 'var(--ac)', color: '#fff' }}>
+              D
             </div>
-          )}
+            {isPro && <span className="profile-pro-badge">PRO</span>}
+          </div>
         </div>
       </div>
     </header>

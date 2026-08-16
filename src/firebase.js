@@ -1,70 +1,16 @@
-import { initializeApp } from 'firebase/app'
-import { getAnalytics, isSupported } from 'firebase/analytics'
-import { getAuth, GoogleAuthProvider } from 'firebase/auth'
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore'
+// Dobby Studio — Standalone Local Stub (Firebase & Remote Auth Removed)
+// All design operations run 100% client-side with zero external auth dependencies.
 
-// All Firebase config is read from Vite env vars (.env.local, gitignored)
-// or Vercel environment variables in production. Nothing is hardcoded.
-
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+export const app = null
+export const analytics = null
+export const auth = {
+  currentUser: null,
+  onAuthStateChanged: (cb) => {
+    setTimeout(() => cb(null), 0)
+    return () => {}
+  },
+  signInWithPopup: () => Promise.resolve(),
+  signOut: () => Promise.resolve(),
 }
-
-const hasValidConfig =
-  !!firebaseConfig.apiKey &&
-  !!firebaseConfig.projectId &&
-  firebaseConfig.apiKey !== 'AIzaSy...' &&
-  !firebaseConfig.apiKey.toLowerCase().includes('your_firebase_api_key') &&
-  !firebaseConfig.apiKey.toLowerCase().includes('fake') &&
-  firebaseConfig.projectId !== 'fake-project-id' &&
-  !firebaseConfig.appId?.toLowerCase().includes('fake')
-
-
-let app, analytics, auth, db, googleProvider
-
-if (hasValidConfig) {
-  try {
-    app = initializeApp(firebaseConfig)
-    isSupported().then((supported) => {
-      if (supported) {
-        try { analytics = getAnalytics(app) } catch (_) {}
-      }
-    }).catch(() => {})
-    auth = getAuth(app)
-    db = initializeFirestore(app, {
-      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
-    })
-    googleProvider = new GoogleAuthProvider()
-  } catch (err) {
-    console.error('[Firebase] Initialization error, falling back to demo mode:', err)
-    app = null
-  }
-}
-
-if (!app) {
-  console.warn('[Firebase] Missing or invalid credentials in environment. Operating in OFFLINE/DEMO mode only.')
-  // Minimal stubs so imports never crash the app. AuthContext's
-  // onAuthStateChanged error handler routes users to demo mode; Firestore
-  // calls in SubscriptionContext / useFirestoreGallery are guarded behind
-  // offline/demo flags, so a non-functional db here is safe.
-  auth = {
-    currentUser: null,
-    onAuthStateChanged: (cb) => {
-      setTimeout(() => cb(null), 0)
-      return () => {}
-    },
-    signInWithPopup: () => Promise.reject(new Error('Firebase auth not configured. Using demo mode.')),
-    signOut: () => Promise.resolve(),
-  }
-  db = {}
-  googleProvider = {}
-}
-
-export { app, analytics, auth, db, googleProvider }
+export const db = {}
+export const googleProvider = {}
