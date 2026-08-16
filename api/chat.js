@@ -28,15 +28,13 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'API key not configured on server' });
   }
 
-  // --- Auth: require a valid Firebase ID token (real signature verification) ---
+  // --- Auth & Rate Limiting ---
+  // Verified token if signed in; otherwise fall back to client IP for demo/guest quota.
   const decodedToken = await verifyFirebaseToken(req.headers['authorization']);
-  if (!decodedToken) {
-    return res.status(401).json({ error: 'Unauthorized: valid sign-in required' });
-  }
+  const clientIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket?.remoteAddress || 'demo';
+  const uid = decodedToken ? decodedToken.sub : `ip_${clientIp}`;
+  const isPro = decodedToken ? isProToken(decodedToken) : false;
 
-  // --- Server-side rate limiting (tier from verified token claim, never a header) ---
-  const uid = decodedToken.sub;
-  const isPro = isProToken(decodedToken);
   const { allowed, count, limit } = await checkRateLimit(uid, isPro);
 
   res.setHeader('X-RateLimit-Limit', limit);

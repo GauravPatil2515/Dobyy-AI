@@ -704,7 +704,7 @@ export default function TryOnView({ state, garment = 'kilt', onGarmentChange }) 
     renderer.setSize(W, H)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.shadowMap.enabled = true
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap
+    renderer.shadowMap.type = THREE.PCFShadowMap
     renderer.toneMapping = THREE.ACESFilmicToneMapping
     renderer.toneMappingExposure = 1.05
     el.appendChild(renderer.domElement)
@@ -826,6 +826,9 @@ export default function TryOnView({ state, garment = 'kilt', onGarmentChange }) 
       setModelLoading(true)
       const loader = new GLTFLoader()
       try {
+        if (garment !== 'shirt') {
+          throw new Error('Procedural model')
+        }
         const gltf = await loader.loadAsync(`/models/${garment}.glb`)
         if (!active) return
         if (s.mesh) { disposeMesh(s.mesh); s.scene.remove(s.mesh) }
