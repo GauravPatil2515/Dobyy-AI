@@ -1023,41 +1023,50 @@ a, button, [role=button] {
 
 .vtabs {
   display: flex;
-  gap: 2px;
-  background: var(--off);
-  padding: 2px;
-  border-radius: var(--r-md);
+  gap: 3px;
+  background: color-mix(in srgb, var(--off) 70%, transparent);
+  padding: 3px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--bdr2);
+  backdrop-filter: blur(8px);
 }
 .vtab {
-  padding: var(--sp-1) var(--sp-2);
-  border-radius: var(--r-sm);
+  padding: 4px 12px;
+  border-radius: var(--r-full);
   font-size: var(--text-xs);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--mt);
   border: none;
-  background: none;
+  background: transparent;
   white-space: nowrap;
-  transition: background var(--ease-ui), color var(--ease-ui), box-shadow var(--ease-ui);
+  cursor: pointer;
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
-.vtab:hover { color: var(--tx) }
+.vtab:hover {
+  color: var(--tx);
+  background: color-mix(in srgb, var(--surf2) 40%, transparent);
+}
 .vtab.active {
   background: var(--surf2);
-  color: var(--tx);
-  box-shadow: var(--shadow-sm);
+  color: var(--ac);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--bdr2);
 }
 
-.zoom-btns { display: flex; gap: 2px }
+.zoom-btns { display: flex; gap: 3px }
 .zoom-btn {
-  width: 22px; height: 22px;
-  border-radius: var(--r-sm);
-  background: var(--off);
-  border: 1px solid var(--bdr);
+  width: 26px; height: 26px;
+  border-radius: var(--r-full);
+  background: color-mix(in srgb, var(--surf2) 70%, transparent);
+  border: 1px solid var(--bdr2);
   font-size: var(--text-sm);
+  font-weight: 700;
   display: flex; align-items: center; justify-content: center;
   color: var(--mt);
-  transition: background var(--ease-ui), color var(--ease-ui);
+  cursor: pointer;
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
-.zoom-btn:hover { background: var(--surf2); color: var(--tx) }
+.zoom-btn:hover { background: var(--ac); color: #ffffff; border-color: var(--ac); transform: scale(1.05); }
 
 .view-actions {
   display: flex;
@@ -1067,27 +1076,38 @@ a, button, [role=button] {
 }
 .export-btns {
   display: flex;
-  gap: var(--sp-1);
+  gap: 6px;
   flex-wrap: wrap;
   align-items: center;
 }
 
 .exp-btn {
-  padding: var(--sp-1) var(--sp-3);
-  border-radius: var(--r-md);
+  padding: 4px 14px;
+  height: 28px;
+  border-radius: var(--r-full);
   font-size: var(--text-xs);
-  background: var(--off);
-  border: 1px solid var(--bdr);
-  color: var(--mt);
-  font-weight: 500;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--surf2) 70%, transparent);
+  border: 1px solid var(--bdr2);
+  color: var(--tx);
   white-space: nowrap;
-  transition: background var(--ease-ui), border-color var(--ease-ui), color var(--ease-ui);
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .exp-btn:hover {
-  background: var(--acl);
-  border-color: var(--acl2);
-  color: var(--ac);
+  background: var(--ac);
+  border-color: var(--ac);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--ac) 30%, transparent);
 }
+.exp-btn.active {
+  background: var(--warnl);
+  color: var(--warn);
+  border-color: var(--warn);
+}
+
 .exp-btn:active { background: var(--acl2) }
 
 /* ── PDF EXPORT BUTTON ──────────────────────────────────────── */
@@ -2167,30 +2187,79 @@ textarea:disabled { opacity: .6; cursor: not-allowed }
 .chat-drop-inner { font-weight: 700; color: var(--ac); font-size: var(--text-base); }
 
 /* ═══════════════════════════════════════════════════
-   VIRTUAL TRY-ON VIEW
+   VIRTUAL TRY-ON VIEW & TOOLBAR
    ═══════════════════════════════════════════════════ */
 .tryon-wrap { width: 100%; height: 100%; display: flex; flex-direction: column; }
 .tryon-toolbar {
-  display: flex; align-items: center; gap: var(--sp-2);
-  padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--bdr);
-  flex-wrap: wrap; background: var(--surf);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--bdr2);
+  flex-wrap: wrap;
+  background: color-mix(in srgb, var(--surf) 85%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  z-index: 5;
 }
 .tryon-garment-btn {
-  padding: 4px var(--sp-3); height: 30px; border-radius: var(--r-md);
-  border: 1px solid var(--bdr); background: var(--off); color: var(--mt);
-  font-size: var(--text-xs); font-weight: 600; cursor: pointer;
-  transition: background .15s, color .15s, border-color .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 32px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--bdr2);
+  background: color-mix(in srgb, var(--surf2) 60%, transparent);
+  color: var(--mt);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
-.tryon-garment-btn:hover { color: var(--tx); }
-.tryon-garment-btn.active { background: var(--ac); color: #fff; border-color: var(--ac); }
+.tryon-garment-btn:hover {
+  background: var(--off2);
+  color: var(--tx);
+  border-color: var(--ac);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+.tryon-garment-btn.active {
+  background: linear-gradient(135deg, var(--ac) 0%, var(--ac-h) 100%);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--ac) 40%, transparent);
+  transform: translateY(-1px);
+}
 .tryon-toolbar-spacer { flex: 1; }
 .tryon-export-btn {
-  padding: 4px var(--sp-3); height: 30px; border-radius: var(--r-md);
-  border: 1px solid var(--bdr); background: var(--surf); color: var(--tx);
-  font-size: var(--text-xs); font-weight: 600; cursor: pointer;
-  transition: background .15s, border-color .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 32px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--bdr2);
+  background: color-mix(in srgb, var(--surf2) 80%, transparent);
+  color: var(--tx);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
-.tryon-export-btn:hover { background: var(--off); border-color: var(--bdr2); }
+.tryon-export-btn:hover {
+  background: var(--ac);
+  color: #ffffff;
+  border-color: var(--ac);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--ac) 35%, transparent);
+}
+
 .tryon-canvas {
   position: relative;
   flex: 1; min-height: 200px; width: 100%;
