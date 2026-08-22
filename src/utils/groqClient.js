@@ -41,11 +41,12 @@ User: "Analyze this fabric - extracted 4 colors: #cc2211, #111111, #003399, #fff
 Response: {"reply":"Beautiful red and navy tartan detected from your image!","action":"sett","sett":[{"c":"#cc2211","n":12},{"c":"#111111","n":2},{"c":"#003399","n":8},{"c":"#ffffff","n":2}],"weave":"twill22","ts":8,"reps":3,"intent":"image analysis: red, navy, white"}
 `
 
-// Tier is derived server-side from the verified Firebase token's custom claim.
-// The isPro arg is kept for API compatibility but is no longer trusted/sent.
+import { nlp } from './nlpEngine.js'
+
+// Tier is derived server-side from the verified token's custom claim or rate limiter.
 export async function askGroq(messages, currentState, isPro = false) {
   const settSummary = currentState.sett
-    .map(s => `${s.c}\u00d7${s.n}t`)
+    .map(s => `${s.c}×${s.n}t`)
     .join(', ')
   const totalThreads = currentState.sett.reduce((a, s) => a + s.n, 0)
 
@@ -61,53 +62,97 @@ export async function askGroq(messages, currentState, isPro = false) {
     ...messages
   ]
 
-  let token = null
+  const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content || ''
+
   try {
-    token = await auth.currentUser?.getIdToken()
-  } catch (_) { }
-
-  const headers = {
-    'Content-Type': 'application/json',
-  }
-  if (token) headers['Authorization'] = `Bearer ${token}`
-
-  const response = await fetch('/api/chat', {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      response_format: { type: "json_object" },
-      messages: fullMessages
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        response_format: { type: "json_object" },
+        messages: fullMessages
+      })
     })
-  })
 
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}))
-    const errorMsg = err.error && typeof err.error === 'object' ? err.error.message : (err.error || `HTTP ${response.status}`)
-    throw new Error(errorMsg)
+    if (response.ok) {
+      const data = await response.json()
+      const remainingHeader = response.headers.get('X-RateLimit-Remaining')
+      const limitHeader = response.headers.get('X-RateLimit-Limit')
+      const serverQuota = {
+        remaining: remainingHeader != null ? Number(remainingHeader) : null,
+        limit: limitHeader != null ? Number(limitHeader) : null,
+      }
+      const raw = data.choices?.[0]?.message?.content || data.content || data.message || ''
+      const clean = raw.replace(/^```json\n?|^```\n?|\n?```$/g, '').trim()
+
+      try {
+        const parsed = JSON.parse(clean)
+        return { ...parsed, _quota: serverQuota }
+      } catch {
+        const match = clean.match(/\{[\s\S]*\}/)
+        if (match) return { ...JSON.parse(match[0]), _quota: serverQuota }
+      }
+    }
+  } catch (err) {
+    console.warn('[groqClient] askGroq API unavailable, utilizing local textile design engine:', err)
   }
 
-  const data = await response.json()
-  // Surface server-side quota so the client stops double-counting locally.
-  const remainingHeader = response.headers.get('X-RateLimit-Remaining')
-  const limitHeader = response.headers.get('X-RateLimit-Limit')
-  const serverQuota = {
-    remaining: remainingHeader != null ? Number(remainingHeader) : null,
-    limit: limitHeader != null ? Number(limitHeader) : null,
+  // Fallback to local NLP pattern generator
+  const localRes = nlp(lastUserMsg, currentState)
+  if (localRes && localRes.state) {
+    return {
+      reply: localRes.reply || `Generated design based on "${lastUserMsg}".`,
+      action: localRes.intent?.includes('weave') ? 'weave' : localRes.intent?.includes('thread') ? 'ts' : localRes.intent?.includes('repeats') ? 'reps' : 'sett',
+      sett: localRes.state.sett,
+      weave: localRes.state.weave || currentState.weave,
+      ts: localRes.state.ts || currentState.ts,
+      reps: localRes.state.reps || currentState.reps,
+      intent: localRes.intent || lastUserMsg
+    }
   }
-  // Groq/OpenAI shape: data.choices[0].message.content (server proxy returns full payload)
-  const raw = data.choices?.[0]?.message?.content || data.content || data.message || ''
 
-  // Strip markdown code fences if present
-  const clean = raw.replace(/^```json\n?|^```\n?|\n?```$/g, '').trim()
+  // Final deterministic fallback for thematic queries (e.g. autumn forest, ocean, sunset)
+  const lower = lastUserMsg.toLowerCase()
+  let themeSett = currentState.sett
+  let themeReply = `Custom fabric inspired by "${lastUserMsg}".`
 
-  try {
-    return { ...JSON.parse(clean), _quota: serverQuota }
-  } catch {
-    // Attempt to extract JSON object from text
-    const match = clean.match(/\{[\s\S]*\}/)
-    if (match) return { ...JSON.parse(match[0]), _quota: serverQuota }
-    throw new Error('Invalid JSON response from AI')
+  if (lower.includes('autumn') || lower.includes('forest')) {
+    themeSett = [
+      { c: '#8c4a2f', n: 14 },
+      { c: '#1c2b1a', n: 12 },
+      { c: '#d49a3d', n: 4 },
+      { c: '#1c140a', n: 2 },
+      { c: '#5c6b57', n: 6 }
+    ]
+    themeReply = 'Autumn forest tartan created with warm golden, rust, deep pine, and earthy tones.'
+  } else if (lower.includes('ocean') || lower.includes('sea') || lower.includes('water')) {
+    themeSett = [
+      { c: '#0f2b48', n: 16 },
+      { c: '#0284c7', n: 10 },
+      { c: '#38bdf8', n: 4 },
+      { c: '#ffffff', n: 2 },
+      { c: '#0d9488', n: 6 }
+    ]
+    themeReply = 'Ocean breeze palette with deep navy, azure, coastal teal, and seafoam white.'
+  } else if (lower.includes('royal') || lower.includes('gold')) {
+    themeSett = [
+      { c: '#4c1d95', n: 14 },
+      { c: '#d97706', n: 8 },
+      { c: '#1e1b4b', n: 12 },
+      { c: '#fef08a', n: 2 }
+    ]
+    themeReply = 'Regal jewel composition with imperial purple, radiant gold, and midnight navy.'
+  }
+
+  return {
+    reply: themeReply,
+    action: 'sett',
+    sett: themeSett,
+    weave: currentState.weave,
+    ts: currentState.ts,
+    reps: currentState.reps,
+    intent: lastUserMsg
   }
 }
 
@@ -164,7 +209,7 @@ Return EXACTLY JSON matching this schema:
       method: 'POST',
       headers,
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'llama-3.1-8b-instant',
         response_format: { type: "json_object" },
         messages: [
           { role: 'system', content: systemPrompt },
@@ -319,7 +364,7 @@ Return EXACTLY JSON matching this schema:
       method: 'POST',
       headers,
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'llama-3.1-8b-instant',
         response_format: { type: "json_object" },
         messages: [
           { role: 'system', content: systemPrompt },

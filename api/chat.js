@@ -56,37 +56,63 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'messages array is required' });
   }
 
-  // Clamp values to safe bounds
-  const safeBody = {
-    messages: messages.slice(-20).map(m => ({
-      role: ['user', 'assistant', 'system'].includes(m.role) ? m.role : 'user',
-      content: typeof m.content === 'string' ? m.content.slice(0, 4000) : ''
-    })),
-    model: typeof model === 'string' ? model : 'llama-3.3-70b-versatile',
-    temperature: typeof temperature === 'number' ? Math.min(2, Math.max(0, temperature)) : 0.7,
-    max_tokens: typeof max_tokens === 'number' ? Math.min(4096, Math.max(1, max_tokens)) : 800
-  };
+  // Model fallback chain in case requested model is deprecated or inaccessible on user tier
+  const CANDIDATE_MODELS = [
+    typeof model === 'string' && model ? model : 'llama-3.1-8b-instant',
+    'llama-3.1-8b-instant',
+    'llama-3.3-70b-versatile',
+    'llama-3.1-70b-versatile',
+    'llama3-8b-8192',
+    'llama3-70b-8192'
+  ];
+  // Deduplicate while preserving order
+  const modelsToTry = [...new Set(CANDIDATE_MODELS)];
 
-  try {
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(safeBody),
-    });
+  const sanitizedMessages = messages.slice(-20).map(m => ({
+    role: ['user', 'assistant', 'system'].includes(m.role) ? m.role : 'user',
+    content: typeof m.content === 'string' ? m.content.slice(0, 4000) : ''
+  }));
 
-    const data = await response.json();
+  let lastError = null;
 
-    if (!response.ok) {
-      console.error('[Chat Proxy] Groq API error:', response.status, data);
-      return res.status(response.status).json(data);
+  for (const targetModel of modelsToTry) {
+    const safeBody = {
+      messages: sanitizedMessages,
+      model: targetModel,
+      temperature: typeof temperature === 'number' ? Math.min(2, Math.max(0, temperature)) : 0.7,
+      max_tokens: typeof max_tokens === 'number' ? Math.min(4096, Math.max(1, max_tokens)) : 800
+    };
+
+    try {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(safeBody),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        return res.status(200).json(data);
+      }
+
+      // If model not found or access denied, try next candidate model
+      const errMsg = (data.error && data.error.message) || JSON.stringify(data);
+      console.warn(`[Chat Proxy] Model ${targetModel} failed:`, errMsg);
+      lastError = { status: response.status, data };
+
+      if (response.status !== 400 && response.status !== 404) {
+        // Non-model errors (e.g. 429 quota or 401 bad key) shouldn't cycle models indefinitely
+        break;
+      }
+    } catch (error) {
+      console.error(`[Chat Proxy] Network error with ${targetModel}:`, error);
+      lastError = { status: 500, data: { error: error.message } };
     }
-
-    return res.status(200).json(data);
-  } catch (error) {
-    console.error('[Chat Proxy] Fetch error:', error);
-    return res.status(500).json({ error: error.message });
   }
+
+  return res.status(lastError?.status || 500).json(lastError?.data || { error: 'Failed to process request with available AI models' });
 }
