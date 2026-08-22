@@ -58,12 +58,12 @@ export default async function handler(req, res) {
 
   // Model fallback chain in case requested model is deprecated or inaccessible on user tier
   const CANDIDATE_MODELS = [
-    typeof model === 'string' && model ? model : 'llama-3.1-8b-instant',
-    'llama-3.1-8b-instant',
-    'llama-3.3-70b-versatile',
-    'llama-3.1-70b-versatile',
-    'llama3-8b-8192',
-    'llama3-70b-8192'
+    typeof model === 'string' && model ? model : 'openai/gpt-oss-20b',
+    'openai/gpt-oss-20b',
+    'openai/gpt-oss-120b',
+    'qwen/qwen3.6-27b',
+    'groq/compound',
+    'llama-3.1-8b-instant'
   ];
   // Deduplicate while preserving order
   const modelsToTry = [...new Set(CANDIDATE_MODELS)];

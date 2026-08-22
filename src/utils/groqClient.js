@@ -69,7 +69,7 @@ export async function askGroq(messages, currentState, isPro = false) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
+        model: 'openai/gpt-oss-20b',
         response_format: { type: "json_object" },
         messages: fullMessages
       })
@@ -209,7 +209,7 @@ Return EXACTLY JSON matching this schema:
       method: 'POST',
       headers,
       body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
+        model: 'openai/gpt-oss-20b',
         response_format: { type: "json_object" },
         messages: [
           { role: 'system', content: systemPrompt },
@@ -364,7 +364,7 @@ Return EXACTLY JSON matching this schema:
       method: 'POST',
       headers,
       body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
+        model: 'openai/gpt-oss-20b',
         response_format: { type: "json_object" },
         messages: [
           { role: 'system', content: systemPrompt },
