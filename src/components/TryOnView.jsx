@@ -105,7 +105,7 @@ export default function TryOnView({ state, garment = 'kilt', onGarmentChange }) 
     renderer.setSize(W, H)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxDpr))
     renderer.shadowMap.enabled = true
-    renderer.shadowMap.type = tier === 'low' ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap
+    renderer.shadowMap.type = THREE.PCFShadowMap
     renderer.toneMapping = THREE.ACESFilmicToneMapping
     renderer.toneMappingExposure = 1.0
     el.appendChild(renderer.domElement)
